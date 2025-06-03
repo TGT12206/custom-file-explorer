@@ -22,6 +22,11 @@
 }
 .cfe-thumbnail {
 	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+.cfe-thumbnail-name {
+	display: flex;
 	flex-direction: row;
 	justify-content: center;
 }

@@ -65,18 +65,6 @@ export class Folder extends FormattedFile {
 		return newFolder;
 	}
 
-	/**
-	 * @override
-	 * Folder layer:
-	 * 
-	 * adds the id and folder name to the thumbnail
-	 */
-	static override async DisplayThumbnailForLayer(folderToDisplay: Folder, thumbnailContainer: HTMLDivElement, displayContainer: HTMLDivElement) {
-		await super.DisplayThumbnailForLayer(folderToDisplay, thumbnailContainer, displayContainer);
-		const name = '' + folderToDisplay.ID + ': ' + folderToDisplay.FileName;
-		thumbnailContainer.createEl('p', { text: name } ).className = "cfe-thumbnail-folder-name";
-	}
-
 	static override async DisplayForLayer(folderToDisplay: Folder, container: HTMLDivElement) {
 		const source = folderToDisplay.Source;
 		await super.DisplayForLayer(folderToDisplay, container);

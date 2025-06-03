@@ -150,6 +150,9 @@ export class FormattedFile {
 		thumbnailContainer.onclick = async () => {
 			await FormattedFileHandler.Display(fileToDisplay, displayContainer);
 		}
+		thumbnailContainer.createEl('p', { text: 'ID: ' + fileToDisplay.ID } ).className = "cfe-thumbnail-name";
+		thumbnailContainer.createEl('p', { text: '\nFile Type: ' + fileToDisplay.FileType } ).className = "cfe-thumbnail-name";
+		thumbnailContainer.createEl('p', { text: '\nFile Name: ' + fileToDisplay.FileName } ).className = "cfe-thumbnail-name";
 	}
 	
 	/**
