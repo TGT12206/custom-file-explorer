@@ -1,5 +1,5 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
-import { Source } from './source';
+import { Source } from './formatted-file';
 
 export const VIEW_TYPE_CUSTOM_EXPLORER = 'custom-explorer-view';
 

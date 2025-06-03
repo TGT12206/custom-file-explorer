@@ -8,21 +8,15 @@
 .cfe-main-display {
 	background-color: var(--background-color);
 }
-.cfe-display-folder {
+.vbox {
 	display: flex;
 	flex-direction: column;
 }
-.cfe-display-folder-name {
-	justify-content: center;
-}
-.cfe-display-folder-header {
+.hbox {
 	display: flex;
 	flex-direction: row;
-	justify-content: left;
 }
 .cfe-thumbnail {
-	display: flex;
-	flex-direction: column;
 	justify-content: center;
 }
 .cfe-thumbnail-name {
@@ -58,4 +52,15 @@ button.cfe-exit-button {
 }
 button:hover {
 	cursor: pointer;
+}
+.cfe-file-creator-input-form {
+	display: flex;
+	flex-direction: row;
+}
+.cfe-input-list {
+	display: flex;
+	flex-direction: column;
+}
+button.cfe-remove-button {
+	background-color: var(--exit-button-color);
 }
