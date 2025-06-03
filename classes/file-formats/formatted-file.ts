@@ -230,11 +230,7 @@ export class BaseFileCreatorInputForm {
 	ParentFolderID() {
 		return parseInt(this.parentFolderIDInput.value);
 	}
-
-	private constructor() {
-
-	}
-
+	
 	static async Create(inputFormContainer: HTMLDivElement, selectedFileType: string, source: Source): Promise<BaseFileCreatorInputForm> {
 		const newForm = new BaseFileCreatorInputForm();
 		newForm.Source = source;
