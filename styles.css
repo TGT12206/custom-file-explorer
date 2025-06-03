@@ -1,13 +1,56 @@
-.display-folder {
+:root {
+	--background-color: rgb(24, 28, 35);
+	--popup-background-color: rgb(15, 18, 23);
+	--thumbnail-background-color: rgb(15, 18, 23);
+	--thumbnail-highlighted-background-color: rgb(10, 12, 15);
+	--exit-button-color: rgb(116, 26, 26);
+}
+.cfe-main-display {
+	background-color: var(--background-color);
+}
+.cfe-display-folder {
 	display: flex;
 	flex-direction: column;
 }
-.display-folder-header {
+.cfe-display-folder-name {
+	justify-content: center;
+}
+.cfe-display-folder-header {
 	display: flex;
 	flex-direction: row;
+	justify-content: left;
 }
-.thumbnail-folder {
+.cfe-thumbnail {
 	display: flex;
 	flex-direction: row;
 	justify-content: center;
+}
+.cfe-thumbnail:hover {
+	cursor: pointer;
+	background-color: var(--thumbnail-background-color);
+}
+.cfe-create-file-pop-up {
+	position: absolute;
+	width: 90%;
+	height: 90%;
+	top: 5%;
+	left: 5%;
+	right: 5%;
+	bottom: 5%;
+	padding: 1vh;
+	background-color: var(--popup-background-color);
+	z-index: 2;
+}
+.cfe-file-creator-header {
+	display: flex;
+	flex-direction: row;
+	justify-content: left;
+}
+button.cfe-exit-button {
+	position: absolute;
+	background-color: var(--exit-button-color);
+	right: 1%;
+}
+button:hover {
+	cursor: pointer;
 }

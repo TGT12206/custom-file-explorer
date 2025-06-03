@@ -19,15 +19,21 @@ export class CustomExplorerView extends ItemView {
 	async onOpen() {
 		const wrapper = this.containerEl.children[1];
 		wrapper.empty();
-		const mainContainer = wrapper.createDiv('main-container');
-		mainContainer.createEl('h4', { text: 'Path to Source:' } );
-		const existingSourcePathInput = mainContainer.createEl('input');
-		existingSourcePathInput.type = 'text';
-		const submitButton = mainContainer.createEl('button', { text: 'submit' } );
+		const mainContainer = wrapper.createDiv('cfe-main-display');
+		const homePage = mainContainer.createDiv('cfe-home-page');
+		homePage.createEl('h4', { text: 'Path to Source:' } );
+		const existingSourcePathInput = homePage.createEl('input', { type: 'text', value: 'source' } );
+		const submitButton = homePage.createEl('button', { text: 'submit' } );
 		const vault = this.app.vault;
 		submitButton.onclick = async () => {
 			const path = existingSourcePathInput.value;
 			new Source(path, vault, mainContainer);
+		}
+		homePage.onkeydown = (keyPressEvent) => {
+			if (keyPressEvent.key === 'Enter') {
+				const path = existingSourcePathInput.value;
+				new Source(path, vault, mainContainer);
+			}
 		}
 	}
 
