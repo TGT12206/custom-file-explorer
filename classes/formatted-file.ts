@@ -285,7 +285,7 @@ export class FormattedFile {
 	
 	static CLASS_DEPTH = 0;
 
-	static readonly LAYER_SEPARATING_STRING = '-=-=-=-\n';
+	static readonly LAYER_SEPARATING_STRING = '-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n';
 
 	/**
 	 * A reference to the path to the source object.
@@ -387,6 +387,7 @@ export class FormattedFile {
 	}
 	
 	static GetDataForLayer(data: string[], layerDepth: number): string[] {
+		console.log(data.length);
 		if (layerDepth >= data.length) {
 			return [];
 		}
@@ -625,6 +626,74 @@ export class Folder extends FormattedFile {
 	}
 }
 
+export class Image extends FormattedFile {
+	static CLASS_DEPTH = 1;
+
+	extensionName: string;
+
+	static override async CreateNewFileForLayer(inputForm: FileCreatorUI, unfinishedFile: FormattedFile): Promise<Image> {
+		const newImageFile = <Image> (await super.CreateNewFileForLayer(inputForm, unfinishedFile));
+		const imageFileArray = inputForm.InputLists[Video.CLASS_DEPTH].inputList[0].inputs[0].files;
+		if (imageFileArray === null) {
+			throw Error("no file was selected");
+		}
+		const imageFile = imageFileArray[0];
+		const partsOfPath = imageFile.name.split('.');
+		const extension = partsOfPath[partsOfPath.length - 1];
+		newImageFile.extensionName = extension;
+		const path = newImageFile.Source.VaultPath + '/' + newImageFile.ID + '.' + extension;
+		const normalizedPath = normalizePath(path);
+		await inputForm.Source.vault.adapter.writeBinary(normalizedPath, await imageFile.arrayBuffer());
+		const tFile = newImageFile.Source.vault.getFileByPath(newImageFile.Source.VaultPath + '/' + newImageFile.ID + '.md');
+		if (tFile === null) {
+			throw Error();
+		}
+		await newImageFile.Source.vault.append(tFile, FormattedFile.LAYER_SEPARATING_STRING + extension);
+		return newImageFile;
+	}
+
+	static override async LoadLayer(source: Source, fileID: number, data: string[]): Promise<Image> {
+		const imageFile = <Image> (await super.LoadLayer(source, fileID, data));
+		
+		const dataForLayer = FormattedFile.GetDataForLayer(data, Image.CLASS_DEPTH);
+		imageFile.extensionName = dataForLayer[0];
+
+		return imageFile;
+	}
+
+	static override async DisplayForLayer(imageToDisplay: Image, container: HTMLDivElement) {
+		await super.DisplayForLayer(imageToDisplay, container);
+		const imageDisplayContainer = container.createDiv('cfe-display-image');
+		const imageElement = imageDisplayContainer.createEl('img');
+
+		const imagePath = imageToDisplay.Source.VaultPath + '/' + imageToDisplay.ID + '.' + imageToDisplay.extensionName;
+		const imageFile = imageToDisplay.Source.vault.getFileByPath(imagePath);
+		if (imageFile === null) {
+			throw Error('Image not found at path: ' + imagePath);
+		}
+		const arrayBuffer = await imageToDisplay.Source.vault.readBinary(imageFile);
+		const blob = new Blob([arrayBuffer]);
+		const imageUrl = URL.createObjectURL(blob);
+		imageElement.src = imageUrl;
+	}
+
+	static override async SaveFileForLayer(tFile: TFile, imageToSave: Image) {
+		await super.SaveFileForLayer(tFile, imageToSave);
+		const dataForLayer = FormattedFile.LAYER_SEPARATING_STRING + imageToSave.extensionName;
+		imageToSave.Source.vault.append(tFile, dataForLayer);
+	}
+
+	static override async CreateInputListForLayer(inputFormUI: FileCreatorUI) {
+		await super.CreateInputListForLayer(inputFormUI);
+		inputFormUI.InputLists.push(new FileCreatorInputList(inputFormUI.InputListsContainer));
+		const inputList = inputFormUI.InputLists[Image.CLASS_DEPTH];
+		inputList.SetFileType('Image');
+		const imageFileInput = new FileCreatorInputField(inputList.listContainer.createDiv(), 'Image File');
+		imageFileInput.inputs.push(imageFileInput.itemContainer.createEl('input', { type: 'file' } ));
+		inputList.inputList.push(imageFileInput);
+	}
+}
+
 export class Video extends FormattedFile {
 	static CLASS_DEPTH = 1;
 
@@ -700,6 +769,39 @@ export class Playlist extends FormattedFile {
 	private currentVideoIndex: number;
 	videoIDs: number[];
 
+	private videoOrder: string;
+
+	private static getNextVideoIDInOrder(playlist: Playlist) {
+		let nextVideoIndex = playlist.currentVideoIndex + 1;
+		if (nextVideoIndex >= playlist.videoIDs.length) {
+			nextVideoIndex = 0;
+		}
+		return nextVideoIndex;
+	}
+	private static getNextVideoIDShuffled(playlist: Playlist) {
+		let nextVideoIndex = Math.random() * playlist.videoIDs.length;
+		nextVideoIndex = Math.floor(nextVideoIndex);
+		return nextVideoIndex;
+	}
+
+	private static async loadNextVideo(playlist: Playlist, videoElement: HTMLVideoElement) {
+		if (playlist.videoOrder === 'shuffled') {
+			playlist.currentVideoIndex = Playlist.getNextVideoIDShuffled(playlist);
+		} else {
+			playlist.currentVideoIndex = Playlist.getNextVideoIDInOrder(playlist);
+		}
+		const nextVideo = <Video> (await FormattedFileHandler.LoadFile(playlist.Source, playlist.videoIDs[playlist.currentVideoIndex]));
+		const nextVideoPath = playlist.Source.VaultPath + '/' + nextVideo.ID + '.' + nextVideo.extensionName;
+		const nextVideoFile = playlist.Source.vault.getFileByPath(nextVideoPath);
+		if (nextVideoFile === null) {
+			throw Error('Video not found at path: ' + nextVideoPath);
+		}
+		const nextArrayBuffer = await playlist.Source.vault.readBinary(nextVideoFile);
+		const nextBlob = new Blob([nextArrayBuffer]);
+		const nextVideoUrl = URL.createObjectURL(nextBlob);
+		videoElement.src = nextVideoUrl;
+	}
+
 	static override async CreateNewFileForLayer(inputForm: FileCreatorUI, unfinishedFile: FormattedFile): Promise<Playlist> {
 		const newPlaylistFile = <Playlist> (await super.CreateNewFileForLayer(inputForm, unfinishedFile));
 		newPlaylistFile.videoIDs = [];
@@ -739,6 +841,32 @@ export class Playlist extends FormattedFile {
 		playlistToDisplay.currentVideoIndex = 0;
 		const videoDisplayContainer = container.createDiv('cfe-display-video');
 		const videoElement = videoDisplayContainer.createEl('video');
+		const buttonsContainer = container.createDiv('hbox');
+		const hideButton = buttonsContainer.createEl('button', { text: 'hide video' } );
+		hideButton.onclick = () => {
+			if (hideButton.textContent === 'hide video') {
+				hideButton.textContent = 'show video';
+				videoElement.style.display = 'none';
+			} else {
+				hideButton.textContent = 'hide video';
+				videoElement.style.display = 'flex';
+			}
+		}
+		const shuffleButton = buttonsContainer.createEl('button', { text: 'shuffle' } );
+				playlistToDisplay.videoOrder = 'in order';
+		shuffleButton.onclick = () => {
+			if (shuffleButton.textContent === 'shuffle') {
+				shuffleButton.textContent = 'go in order';
+				playlistToDisplay.videoOrder = 'shuffled';
+			} else {
+				shuffleButton.textContent = 'shuffle';
+				playlistToDisplay.videoOrder = 'in order';
+			}
+		}
+		const nextButton = buttonsContainer.createEl('button', { text: 'next video' } );
+		nextButton.onclick = async () => {
+			await Playlist.loadNextVideo(playlistToDisplay, videoElement);
+		}
 
 		const firstVideo = <Video> (await FormattedFileHandler.LoadFile(playlistToDisplay.Source, playlistToDisplay.videoIDs[playlistToDisplay.currentVideoIndex]));
 		const videoPath = playlistToDisplay.Source.VaultPath + '/' + firstVideo.ID + '.' + firstVideo.extensionName;
@@ -754,20 +882,7 @@ export class Playlist extends FormattedFile {
 		videoElement.controls = true;
 		videoElement.ontimeupdate = async () => {
 			if (videoElement.ended) {
-				playlistToDisplay.currentVideoIndex++;
-				if (playlistToDisplay.currentVideoIndex >= playlistToDisplay.videoIDs.length) {
-					playlistToDisplay.currentVideoIndex = 0;
-				}
-				const nextVideo = <Video> (await FormattedFileHandler.LoadFile(playlistToDisplay.Source, playlistToDisplay.videoIDs[playlistToDisplay.currentVideoIndex]));
-				const nextVideoPath = playlistToDisplay.Source.VaultPath + '/' + nextVideo.ID + '.' + nextVideo.extensionName;
-				const nextVideoFile = playlistToDisplay.Source.vault.getFileByPath(nextVideoPath);
-				if (nextVideoFile === null) {
-					throw Error('Video not found at path: ' + nextVideoPath);
-				}
-				const nextArrayBuffer = await playlistToDisplay.Source.vault.readBinary(nextVideoFile);
-				const nextBlob = new Blob([nextArrayBuffer]);
-				const nextVideoUrl = URL.createObjectURL(nextBlob);
-				videoElement.src = nextVideoUrl;
+				await Playlist.loadNextVideo(playlistToDisplay, videoElement);
 			}
 		}
 	}
