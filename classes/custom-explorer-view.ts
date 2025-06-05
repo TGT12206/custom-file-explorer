@@ -1,5 +1,5 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
-import { Source } from './formatted-file';
+import { SourceFolder } from './formatted-file';
 
 export const VIEW_TYPE_CUSTOM_EXPLORER = 'custom-explorer-view';
 
@@ -27,12 +27,12 @@ export class CustomExplorerView extends ItemView {
 		const vault = this.app.vault;
 		submitButton.onclick = async () => {
 			const path = existingSourcePathInput.value;
-			new Source(path, vault, mainContainer);
+			SourceFolder.CreateOrLoadSourceFolder(path, vault, mainContainer);
 		}
 		homePage.onkeydown = (keyPressEvent) => {
 			if (keyPressEvent.key === 'Enter') {
 				const path = existingSourcePathInput.value;
-				new Source(path, vault, mainContainer);
+				SourceFolder.CreateOrLoadSourceFolder(path, vault, mainContainer);
 			}
 		}
 	}
