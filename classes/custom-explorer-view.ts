@@ -27,12 +27,14 @@ export class CustomExplorerView extends ItemView {
 		const vault = this.app.vault;
 		submitButton.onclick = async () => {
 			const path = existingSourcePathInput.value;
-			SourceFolder.CreateOrLoadSourceFolder(path, vault, mainContainer);
+			const sf = <SourceFolder> await SourceFolder.CreateOrLoadSourceFolder(path, vault);
+			await sf.Display(mainContainer, vault);
 		}
-		homePage.onkeydown = (keyPressEvent) => {
+		homePage.onkeydown = async (keyPressEvent) => {
 			if (keyPressEvent.key === 'Enter') {
 				const path = existingSourcePathInput.value;
-				SourceFolder.CreateOrLoadSourceFolder(path, vault, mainContainer);
+				const sf = await SourceFolder.CreateOrLoadSourceFolder(path, vault);
+				await sf.Display(mainContainer, vault);
 			}
 		}
 	}

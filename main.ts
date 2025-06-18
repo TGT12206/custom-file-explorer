@@ -96,21 +96,13 @@ export default class MyPlugin extends Plugin {
 		const { workspace } = this.app;
 
 		let leaf: WorkspaceLeaf | null = null;
-		const leaves = workspace.getLeavesOfType(view_type);
-
-		if (leaves.length > 0) {
-			// A leaf with our view already exists, use that
-			leaf = leaves[0];
-		} else {
-			// Our view could not be found in the workspace, create a new leaf
-			// in the right sidebar for it
-			leaf = workspace.getLeaf();
-			if (leaf === null) {
-				new Notice("Failed to create view: workspace leaf was null");
-				return;
-			}
-			await leaf.setViewState({ type: view_type, active: true });
+		
+		leaf = workspace.getLeaf();
+		if (leaf === null) {
+			new Notice("Failed to create view: workspace leaf was null");
+			return;
 		}
+		await leaf.setViewState({ type: view_type, active: true });
 
 		// "Reveal" the leaf in case it is in a collapsed sidebar
 		workspace.revealLeaf(leaf);

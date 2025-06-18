@@ -1,4 +1,4 @@
-import { normalizePath, Notice, Vault } from "obsidian";
+import { normalizePath, Notice, TFile, Vault } from "obsidian";
 
 //#region Source
 /**
@@ -8,30 +8,41 @@ export class SourceFolder {
 	vaultPath: string;
 	fileCount: number;
 
-	private constructor(vaultPath: string, fileCount: number) {
-		this.vaultPath = vaultPath;
-		this.fileCount = fileCount;
+	private constructor() {
+		this.vaultPath = '';
+		this.fileCount = 0;
 	}
 
-	static async CreateOrLoadSourceFolder(vaultPath: string, vault: Vault, container: HTMLDivElement): Promise<SourceFolder> {
+	async Display(container: HTMLDivElement, vault: Vault) {
+		const snv = new SourceAndVault(this, vault);
+		let rootFolder;
+		try {
+			rootFolder = await CFEFileHandler.LoadFile(snv, 0);
+		} catch (e) {
+			const newRootFolderData = new FileCreationData(snv, 'Folder', 0);
+			rootFolder = await CFEFileHandler.CreateNew(newRootFolderData);
+		}
+		await SourceFolder.Save(snv);
+		await rootFolder.Save(snv);
+		await rootFolder.Display(snv, container);
+	}
+
+	static async CreateOrLoadSourceFolder(vaultPath: string, vault: Vault): Promise<SourceFolder> {
 		vaultPath = vaultPath.endsWith('/source.json') ? vaultPath.slice(0, -12) : vaultPath;
 		const exists = vault.getFileByPath(vaultPath + '/source.json') !== null;
 		let newSourceFolder: SourceFolder;
 		if (exists) {
-			newSourceFolder = await this.LoadExistingSource(vaultPath, vault, container);
+			newSourceFolder = await this.LoadExistingSource(vaultPath, vault);
 		} else {
-			newSourceFolder = await this.CreateNewSourceFolder(vaultPath, vault, container);
+			newSourceFolder = await this.CreateNewSourceFolder(vaultPath, vault);
 		}
-		const rootFolder = await Folder.LoadOrCreateRootFolder(newSourceFolder, vault);
-		const sourceAndVault = new SourceAndVault(newSourceFolder, vault);
-		await SourceFolder.Save(sourceAndVault);
-		await FormattedFileHandler.SaveFile(sourceAndVault, rootFolder);
-		await FormattedFileHandler.Display(sourceAndVault, rootFolder, container);
 		return newSourceFolder;
 	}
 
-	private static async CreateNewSourceFolder(vaultPath: string, vault: Vault, container: HTMLDivElement): Promise<SourceFolder> {
-		const newSourceFolder = new SourceFolder(vaultPath, 0);
+	private static async CreateNewSourceFolder(vaultPath: string, vault: Vault): Promise<SourceFolder> {
+		const newSourceFolder = new SourceFolder();
+		newSourceFolder.vaultPath = vaultPath;
+		newSourceFolder.fileCount = 0;
 		try {
 			await vault.createFolder(vaultPath);
 		} finally {
@@ -41,7 +52,7 @@ export class SourceFolder {
 		return newSourceFolder;
 	}
 
-	private static async LoadExistingSource(vaultPath: string, vault: Vault, container: HTMLDivElement): Promise<SourceFolder> {
+	private static async LoadExistingSource(vaultPath: string, vault: Vault): Promise<SourceFolder> {
 		const sourceTFile = vault.getFileByPath(vaultPath + '/source.json');
 		if (sourceTFile === null) {
 			new Notice("Source File could not be found at the path: " + vaultPath + '/source.json');
@@ -49,7 +60,8 @@ export class SourceFolder {
 		}
 		const jsonData = await vault.cachedRead(sourceTFile);
 
-		const newSourceFolder = <SourceFolder> await JSON.parse(jsonData);
+		const plainObject = await JSON.parse(jsonData);
+		const newSourceFolder = Object.assign(new SourceFolder(), plainObject);
 		return newSourceFolder;
 	}
 
@@ -86,161 +98,55 @@ export class SourceAndVault {
 /**
  * Represents and handles the pop up UI behind creating a file.
  */
-export class FileCreatorForm {
-	sourceAndVault: SourceAndVault;
-	popUpContainer: HTMLDivElement;
-	inputListsContainer: HTMLDivElement;
-	inputLists: FileCreatorInputList[];
-	dropdown: HTMLSelectElement;
-	getSelectedFileType() {
-		return this.dropdown.value;
-	}
-	fileNameInput: HTMLInputElement;
-	getFileName() {
-		return this.fileNameInput.value;
-	}
-	parentFolderIDInput: HTMLInputElement;
-	getParentFolderID() {
-		return this.parentFolderIDInput.value;
-	}
-	submitButton: HTMLInputElement | HTMLButtonElement | HTMLDivElement;
-
-	/**
-	 * Warning! This constructor loads the UI asynchronously!
-	 */
-	constructor(popUpContainer: HTMLDivElement, sourceAndVault: SourceAndVault) {
-		this.sourceAndVault = sourceAndVault;
-		popUpContainer.className = 'cfe-create-file-pop-up';
-		this.popUpContainer = popUpContainer;
-		this.inputLists = [];
-		const header = popUpContainer.createDiv('cfe-file-creator-header');
-		header.createEl('p', { text: 'Choose a File Type to create: ' } );
-		this.dropdown = header.createEl('select');
-		for (let i = 0; i < FormattedFileHandler.KnownFileTypes.length; i++) {
-			const option = this.dropdown.createEl('option');
-			option.value = FormattedFileHandler.KnownFileTypes[i];
-			option.text = FormattedFileHandler.KnownFileTypes[i];
-			this.dropdown.options.add(option);
-		}
-		const exitButton = header.createEl('button', { text: 'X', cls: 'cfe-exit-button' } );
-		exitButton.onclick = () => {
-			popUpContainer.style.display = 'none';
-		}
-		this.inputListsContainer = this.popUpContainer.createDiv('cfe-file-creator-input-form');
-		this.submitButton = this.popUpContainer.createEl('button', { text: 'Create' } );
-		this.LoadUI();
-	}
-	private async LoadUI() {
-		this.dropdown.onchange = async () => {
-			this.inputListsContainer.empty();
-			this.inputLists = [];
-			await FormattedFileHandler.CreateInputLists(this);
-		}
-		await FormattedFileHandler.CreateInputLists(this);
-		this.submitButton.onclick = async () => {
-			await FormattedFileHandler.CreateNew(this);
-		}
-	}
-
-}
-
-export class FileCreatorInputList {
-	private fileTypeTitle: HTMLHeadingElement;
-	listContainer: HTMLDivElement;
-	inputFields: FileCreatorInputField[];
-	
-	constructor(fileType: string, formContainer: HTMLDivElement) {
-		this.listContainer = formContainer.createDiv('cfe-input-list');
-		this.fileTypeTitle = this.listContainer.createEl('h4');
-		this.setFileType(fileType);
-		this.inputFields = [];
-	}
-
-	private setFileType(fileType: string) {
-		this.fileTypeTitle.textContent = fileType + ' Requirements';
-	}
-}
-
-export class FileCreatorInputField {
-	private inputNameElement: HTMLParagraphElement;
-	itemContainer: HTMLDivElement;
-	inputs: (CustomInputElement | HTMLInputElement)[];
-	getValuesAsString(): string {
-		let values = '';
-		for (let i = 0; i < this.inputs.length; i++) {
-			values += this.inputs[i].value;
-		}
-		return values;
-	}
-	getValuesAsList(): string[] {
-		const values = [];
-		for (let i = 0; i < this.inputs.length; i++) {
-			values.push(this.inputs[i].value);
-		}
-		return values;
-	}
-	constructor(itemContainer: HTMLDivElement, inputName: string) {
-		this.itemContainer = itemContainer;
-		this.itemContainer.className = 'vbox';
-		this.inputNameElement = itemContainer.createEl('p');
-		this.setName(inputName);
-		this.inputs = [];
-	}
-	private setName(inputName: string) {
-		this.inputNameElement.textContent = inputName;
-	}
-}
-
-export abstract class CustomInputElement {
-	get value() {
-		return this.getValue();
-	}
-	private getValue: () => string;
-	constructor(getValue: () => string) {
-		this.getValue = getValue;
+export class FileCreationData {
+	snv: SourceAndVault;
+	fileType: string;
+	parentFolderID: number;
+	constructor(snv: SourceAndVault, fileType: string, parentFolderID: number) {
+		this.snv = snv;
+		this.fileType = fileType;
+		this.parentFolderID = parentFolderID;
 	}
 }
 //#endregion
 
 //#region Formatted File Handler
-export class FormattedFileHandler {
+export class CFEFileHandler {
 
 	/**
 	 * All of the known file formats
 	 */
 	static KnownFileTypes: string[] = [
-		'Base File',
 		'Folder',
-		'Video',
+		'Single Media File',
+		'Variant Media File',
 		'Playlist'
 	]
 
-	static async CreateNew(inputForm: FileCreatorForm): Promise<CFEFile> {
+	static async CreateNew(data: FileCreationData): Promise<CFEFile> {
 		let newFile: CFEFile;
-		switch(inputForm.getSelectedFileType()) {
-			case 'Base File':
-				newFile = await CFEFile.CreateNewFileForLayer(inputForm, new CFEFile());
-				break;
+		switch(data.fileType) {
 			case 'Folder':
-				newFile = await Folder.CreateNewFileForLayer(inputForm, new CFEFile());
+			default:
+				newFile = await Folder.CreateNewFileForLayer(data);
 				break;
-			case 'Video':
-				newFile = await Video.CreateNewFileForLayer(inputForm, new CFEFile());
+			case 'Single Media File':
+				newFile = await SingleMediaFile.CreateNewFileForLayer(data);
+				break;
+			case 'Variant Media File':
+				newFile = await VariantMediaFile.CreateNewFileForLayer(data);
 				break;
 			case 'Playlist':
-				newFile = await Playlist.CreateNewFileForLayer(inputForm, new CFEFile());
-				break;
-			default:
-				newFile = await CFEFile.CreateNewFileForLayer(inputForm, new CFEFile());
+				newFile = await Playlist.CreateNewFileForLayer(data);
 				break;
 		}
-		this.SaveFile(inputForm.sourceAndVault, newFile);
+		await newFile.Save(data.snv);
 		return newFile;
 	}
 
-	static async LoadFile(sourceAndVault: SourceAndVault, fileID: number): Promise<CFEFile> {
-		const sourceFolder = sourceAndVault.sourceFolder;
-		const vault = sourceAndVault.vault;
+	static async LoadFile(snv: SourceAndVault, fileID: number): Promise<CFEFile> {
+		const sourceFolder = snv.sourceFolder;
+		const vault = snv.vault;
 
 		const tFile = vault.getFileByPath(sourceFolder.vaultPath + '/' + fileID + '.json');
 		if (tFile === null) {
@@ -248,71 +154,18 @@ export class FormattedFileHandler {
 			throw Error("File could not be found at the path: " + sourceFolder.vaultPath + '/' + fileID + '.json');
 		}
 		const jsonData = await vault.cachedRead(tFile);
-		const unfinishedFile = <CFEFile> JSON.parse(jsonData);
-		switch(unfinishedFile.fileType) {
-			case 'Base File':
-				return unfinishedFile;
+		const plainObject = JSON.parse(jsonData);
+		switch(plainObject.fileType) {
 			case 'Folder':
-				return <Folder> JSON.parse(jsonData);
-			case 'Video':
-				return <Video> JSON.parse(jsonData);
-			case 'Playlist':
-				return <Playlist> JSON.parse(jsonData);
 			default:
-				return unfinishedFile;
-		}
-	}
-
-	static async Display(sourceAndVault: SourceAndVault, fileToDisplay: CFEFile, container: HTMLDivElement) {
-		switch(fileToDisplay.fileType) {
-			case 'Base File':
-				return await CFEFile.DisplayForLayer(sourceAndVault, fileToDisplay, container);
-			case 'Folder':
-				return await Folder.DisplayForLayer(sourceAndVault, <Folder> fileToDisplay, container);
-			case 'Video':
-				return await Video.DisplayForLayer(sourceAndVault, <Video> fileToDisplay, container);
+				return Object.assign(new Folder(), plainObject);
+			case 'Single Media File':
+				return Object.assign(new SingleMediaFile(), plainObject);
+			case 'Variant Media File':
+				return Object.assign(new VariantMediaFile(), plainObject);
 			case 'Playlist':
-				return await Playlist.DisplayForLayer(sourceAndVault, <Playlist> fileToDisplay, container);
-			default:
-				return await CFEFile.DisplayForLayer(sourceAndVault, fileToDisplay, container);
+				return Object.assign(new Playlist(), plainObject);
 		}
-	}
-
-	static async DisplayThumbnail(sourceAndVault: SourceAndVault, fileToDisplay: CFEFile, thumbnailContainer: HTMLDivElement, displayContainer: HTMLDivElement) {
-		return await CFEFile.DisplayThumbnailForLayer(sourceAndVault, fileToDisplay, thumbnailContainer, displayContainer);
-	}
-
-	static async CreateInputLists(inputFormUI: FileCreatorForm) {
-		switch(inputFormUI.getSelectedFileType()) {
-			case 'Base File':
-				return CFEFile.CreateInputListForLayer(inputFormUI);
-			case 'Folder':
-				return Folder.CreateInputListForLayer(inputFormUI);
-			case 'Video':
-				return Video.CreateInputListForLayer(inputFormUI);
-			case 'Playlist':
-				return Playlist.CreateInputListForLayer(inputFormUI);
-			default:
-				return CFEFile.CreateInputListForLayer(inputFormUI);
-		}
-	}
-
-	static async SaveFile(sourceAndVault: SourceAndVault, fileToSave: CFEFile) {
-		const sourceFolder = sourceAndVault.sourceFolder;
-		const vault = sourceAndVault.vault;
-		const filePath = sourceFolder.vaultPath + '/' + fileToSave.id + '.json';
-		const jsonData = JSON.stringify(fileToSave);
-		const tFile = vault.getFileByPath(filePath);
-		if (tFile === null) {
-			const normalizedPath = normalizePath(filePath);
-			await vault.adapter.write(normalizedPath, jsonData);
-			return;
-		}
-		await vault.modify(tFile, jsonData);
-	}
-
-	static async MoveFile(sourceAndVault: SourceAndVault, fileToMove: CFEFile, newParentFolderID: number) {
-		await CFEFile.MoveFile(sourceAndVault, fileToMove, newParentFolderID);
 	}
 }
 //#endregion
@@ -350,36 +203,36 @@ export class CFEFile {
 	private static readonly PARENT_FOLDER_ID_INPUT_INDEX = 1;
 
 	/**
-	 * SHOULD NOT BE CALLED OUTSIDE OF FormattedFileHandler.
+	 * SHOULD NOT BE CALLED OUTSIDE OF CFEFileHandler.
 	 * 
-	 * Use FormattedFileHandler.CreateNew() instead.
+	 * Use CFEFileHandler.CreateNew() instead.
 	 * 
-	 * CHILD CLASSES SHOULD NOT WRITE TO A FILE. THIS IS DONE INSIDE OF FormattedFileHandler
+	 * CHILD CLASSES SHOULD NOT WRITE TO A FILE. THIS IS DONE INSIDE OF CFEFileHandler
 	 * 
 	 * CFEFile layer:
 	 * 
 	 * sets the source, id, file type, file name, and parent folder id of the file object.
 	 */
-	static async CreateNewFileForLayer(inputForm: FileCreatorForm, unfinishedFile: CFEFile): Promise<CFEFile> {
-		const inputListForLayer = inputForm.inputLists[CFEFile.CLASS_DEPTH];
-		const sourceAndVault = inputForm.sourceAndVault;
+	static async CreateNewFileForLayer(data: FileCreationData): Promise<CFEFile> {
+		const sourceAndVault = data.snv;
 		const sourceFolder = sourceAndVault.sourceFolder;
 
 		// Set the values of the unfinished file
+		const unfinishedFile = new CFEFile();
 		unfinishedFile.id = sourceFolder.fileCount;
-		unfinishedFile.fileType = inputForm.getSelectedFileType();
-		unfinishedFile.fileName = inputListForLayer.inputFields[this.FILE_NAME_INPUT_INDEX].getValuesAsString();
-		unfinishedFile.parentFolderID = parseInt(inputListForLayer.inputFields[this.PARENT_FOLDER_ID_INPUT_INDEX].getValuesAsString());
-
+		unfinishedFile.fileType = data.fileType;
+		unfinishedFile.fileName = '';
+		unfinishedFile.parentFolderID = data.parentFolderID;
+		
 		// Update the file count
 		sourceFolder.fileCount++;
 		await SourceFolder.Save(sourceAndVault);
 
 		// Find the parent folder and add this file to it
 		if (unfinishedFile.id !== unfinishedFile.parentFolderID) {
-			const parentFolder = <Folder> (await FormattedFileHandler.LoadFile(sourceAndVault, unfinishedFile.parentFolderID));
+			const parentFolder = <Folder> (await CFEFileHandler.LoadFile(sourceAndVault, unfinishedFile.parentFolderID));
 			parentFolder.containedFileIDs.push(unfinishedFile.id);
-			await FormattedFileHandler.SaveFile(sourceAndVault, parentFolder);
+			await parentFolder.Save(sourceAndVault);
 		}
 
 		// Return the unfinished file so the next layer can add to it
@@ -387,96 +240,98 @@ export class CFEFile {
 	}
 
 	/**
-	 * SHOULD NOT BE CALLED OUTSIDE OF FormattedFileHandler.
+	 * SHOULD NOT BE CALLED OUTSIDE OF CFEFileHandler.
 	 * 
-	 * Use FormattedFileHandler.DisplayThumbnail() instead.
+	 * Use CFEFileHandler.DisplayThumbnail() instead.
 	 * 
 	 * CFEFile layer:
 	 * 
 	 * sets the thumbnail container's css class to 'cfe-thumbnail'
 	 * and fully displays the file if the thumbnail is clicked.
 	 */
-	static async DisplayThumbnailForLayer(sourceAndVault: SourceAndVault, fileToDisplay: CFEFile, thumbnailContainer: HTMLDivElement, displayContainer: HTMLDivElement) {
-		thumbnailContainer.className = 'cfe-thumbnail vbox';
-		thumbnailContainer.onclick = async () => {
-			await FormattedFileHandler.Display(sourceAndVault, fileToDisplay, displayContainer);
+	async DisplayThumbnail(sourceAndVault: SourceAndVault, thumbnailDiv: HTMLDivElement, displayDiv: HTMLDivElement) {
+		thumbnailDiv.className = 'cfe-thumbnail vbox';
+		thumbnailDiv.onclick = async () => {
+			await this.Display(sourceAndVault, displayDiv);
 		}
-		thumbnailContainer.createEl('p', { text: 'ID: ' + fileToDisplay.id } ).className = "cfe-thumbnail-name";
-		thumbnailContainer.createEl('p', { text: '\nFile Type: ' + fileToDisplay.fileType } ).className = "cfe-thumbnail-name";
-		thumbnailContainer.createEl('p', { text: '\nFile Name: ' + fileToDisplay.fileName } ).className = "cfe-thumbnail-name";
+		const idText = thumbnailDiv.createDiv('hbox');
+		idText.textContent = 'ID: ' + this.id;
+		idText.style.justifyContent = 'center';
+		const fileText = thumbnailDiv.createDiv('hbox');
+		fileText.textContent = 'File Type: ' + this.fileType;
+		fileText.style.justifyContent = 'center';
+		const nameText = thumbnailDiv.createDiv('hbox');
+		nameText.textContent = 'File Name: ' + this.fileName;
+		nameText.style.justifyContent = 'center';
 	}
 	
 	/**
-	 * SHOULD NOT BE CALLED OUTSIDE OF FormattedFileHandler.
+	 * SHOULD NOT BE CALLED OUTSIDE OF CFEFileHandler.
 	 * 
-	 * Use FormattedFileHandler.Display() instead.
+	 * Use CFEFileHandler.Display() instead.
 	 * 
 	 * CFEFile layer:
 	 * 
 	 * empties the display container provided.
 	 */
-	static async DisplayForLayer(sourceAndVault: SourceAndVault, fileToDisplay: CFEFile, container: HTMLDivElement) {
+	async Display(snv: SourceAndVault, container: HTMLDivElement) {
 		container.empty();
 		const headerContainer = container.createDiv('hbox');
 		const backButton = headerContainer.createEl('button', { text: 'Back to parent folder' } );
-		backButton.className = 'cfe-back-to-parent-button';
+		headerContainer.createEl('p', { text: 'File ID: ' + this.id } )
+		headerContainer.createEl('p', { text: 'File Name: ' } )
+		const nameInput = headerContainer.createEl('input', { type: 'text', value: this.fileName } );
 		backButton.onclick = async () => {
-			const parentFolder = await FormattedFileHandler.LoadFile(sourceAndVault, fileToDisplay.parentFolderID);
+			const parentFolder = await CFEFileHandler.LoadFile(snv, this.parentFolderID);
 			if (parentFolder !== null) {
-				await FormattedFileHandler.Display(sourceAndVault, parentFolder, container);
+				await parentFolder.Display(snv, container);
 			}
+		}
+		nameInput.onchange = async () => {
+			this.fileName = nameInput.value;
+			await this.Save(snv);
 		}
 	}
 
 	/**
-	 * SHOULD NOT BE CALLED OUTSIDE OF FormattedFileHandler.
-	 * 
-	 * Use FormattedFileHandler.CreateInputLists() instead.
-	 * 
-	 * Formatted File layer:
-	 * 
-	 * ask for the file name and parent folder id.
-	 */
-	static async CreateInputListForLayer(inputFormUI: FileCreatorForm) {
-		inputFormUI.inputLists.push(new FileCreatorInputList('Base File', inputFormUI.inputListsContainer));
-		const inputListForLayer = inputFormUI.inputLists[CFEFile.CLASS_DEPTH];
-
-		const fileNameInputField = new FileCreatorInputField(inputListForLayer.listContainer.createDiv(), 'File Name');
-		const fileNameInputElement = fileNameInputField.itemContainer.createEl('input', { type: 'text' } );
-		fileNameInputField.inputs.push(fileNameInputElement);
-		inputListForLayer.inputFields.push(fileNameInputField);
-
-		const parentFolderIDInputField = new FileCreatorInputField(inputListForLayer.listContainer.createDiv(), 'Parent Folder ID');
-		const parentFolderIDInputElement = parentFolderIDInputField.itemContainer.createEl('input', { type: 'text' } );
-		parentFolderIDInputField.inputs.push(parentFolderIDInputElement);
-		inputListForLayer.inputFields.push(parentFolderIDInputField);
-	}
-
-	/**
-	 * SHOULD NOT BE CALLED OUTSIDE OF FormattedFileHandler.
+	 * SHOULD NOT BE CALLED OUTSIDE OF CFEFileHandler.
 	 * 
 	 * (it is unlikely this method will ever be overriden by child classes, but making this 'inaccessible' is for consistency)
 	 * 
-	 * Use FormattedFileHandler.SaveFile() instead.
+	 * Use CFEFileHandler.SaveFile() instead.
 	 * 
 	 * Formatted File layer:
 	 * 
 	 * Deletes this file ID from the original parent folder, adds this file to the new parent folder, and changes the parent folder ID
 	 */
-	static async MoveFile(sourceAndVault: SourceAndVault, fileToMove: CFEFile, newParentFolderID: number) {
+	async MoveFile(sourceAndVault: SourceAndVault, newParentFolderID: number) {
 		// Delete this file id from the original parent folder
-		const oldParentFolder = <Folder> (await FormattedFileHandler.LoadFile(sourceAndVault, fileToMove.parentFolderID));
-		const indexOfFile = oldParentFolder.containedFileIDs.indexOf(fileToMove.id);
+		const oldParentFolder = <Folder> (await CFEFileHandler.LoadFile(sourceAndVault, this.parentFolderID));
+		const indexOfFile = oldParentFolder.containedFileIDs.indexOf(this.id);
 		oldParentFolder.containedFileIDs.splice(indexOfFile, 1);
-		FormattedFileHandler.SaveFile(sourceAndVault, oldParentFolder); // this can be done asynchronously without affecting the others
+		oldParentFolder.Save(sourceAndVault); // this can be done asynchronously without affecting the others
 
 		// Add this file to the new parent folder
-		const newParentFolder = <Folder> (await FormattedFileHandler.LoadFile(sourceAndVault, newParentFolderID));
-		newParentFolder.containedFileIDs.push(fileToMove.id);
-		FormattedFileHandler.SaveFile(sourceAndVault, newParentFolder); // this can be done asynchronously without affecting the others
+		const newParentFolder = <Folder> (await CFEFileHandler.LoadFile(sourceAndVault, newParentFolderID));
+		newParentFolder.containedFileIDs.push(this.id);
+		newParentFolder.Save(sourceAndVault); // this can be done asynchronously without affecting the others
 
-		fileToMove.parentFolderID = newParentFolderID;
-		FormattedFileHandler.SaveFile(sourceAndVault, fileToMove); // this can be done asynchronously without affecting the others
+		this.parentFolderID = newParentFolderID;
+		this.Save(sourceAndVault); // this can be done asynchronously without affecting the others
+	}
+
+	async Save(sourceAndVault: SourceAndVault) {
+		const sourceFolder = sourceAndVault.sourceFolder;
+		const vault = sourceAndVault.vault;
+		const filePath = sourceFolder.vaultPath + '/' + this.id + '.json';
+		const jsonData = JSON.stringify(this);
+		const tFile = vault.getFileByPath(filePath);
+		if (tFile === null) {
+			const normalizedPath = normalizePath(filePath);
+			await vault.adapter.write(normalizedPath, jsonData);
+			return;
+		}
+		await vault.modify(tFile, jsonData);
 	}
 }
 
@@ -496,166 +351,279 @@ export class Folder extends CFEFile {
 	 * 
 	 * initializes the contained file ids array for the folder object
 	 */
-	static override async CreateNewFileForLayer(inputForm: FileCreatorForm, unfinishedFile: CFEFile): Promise<Folder> {
-		const unfinishedFolder = <Folder> (await super.CreateNewFileForLayer(inputForm, unfinishedFile));
+	static override async CreateNewFileForLayer(data: FileCreationData): Promise<Folder> {
+		const unfinishedFolder = <Folder> (await super.CreateNewFileForLayer(data));
 		unfinishedFolder.containedFileIDs = [];
 		return unfinishedFolder;
 	}
 
-	static async LoadOrCreateRootFolder(source: SourceFolder, vault: Vault): Promise<Folder> {
-		let newFolder: Folder;
-		const rootFolderPath = source.vaultPath + '/0.json';
-
-		if (source.fileCount === 0) {
-			source.fileCount = 1;
-
-			newFolder = new Folder();
-			newFolder.id = 0;
-			newFolder.fileType = 'Folder';
-			newFolder.fileName = 'root folder';
-			newFolder.parentFolderID = 0;
-			newFolder.containedFileIDs = [];
-		} else {
-			const tFile = vault.getFileByPath(rootFolderPath);
-			if (tFile === null) {
-				throw Error('Root Folder was not found at path: ' + rootFolderPath);
-			}
-			const jsonData = await vault.cachedRead(tFile);
-			newFolder = JSON.parse(jsonData);
+	override async Display(snv: SourceAndVault, mainDiv: HTMLDivElement) {
+		await super.Display(snv, mainDiv);
+		const createButtonsDiv = mainDiv.createDiv('hbox');
+		const newFileButton = createButtonsDiv.createEl('button', { text: 'Create New File' } );
+		newFileButton.onclick = () => {
+			this.LoadCreateFileUI(snv, mainDiv);
 		}
-
-		return newFolder;
-	}
-
-	static override async DisplayForLayer(sourceAndVault: SourceAndVault, folderToDisplay: Folder, container: HTMLDivElement) {
-		await super.DisplayForLayer(sourceAndVault, folderToDisplay, container);
-		const folderDisplayContainer = container.createDiv('vbox');
-		const createFileButton = folderDisplayContainer.createEl('button', { text: 'Create new File' } );
-		createFileButton.className = 'cfe-create-file-button';
-		createFileButton.onclick = () => {
-			new FileCreatorForm(container.createDiv(), sourceAndVault);
+		const mediaFilesButton = createButtonsDiv.createEl('button', { text: 'Upload Multiple Images / Videos' } );
+		mediaFilesButton.onclick = () => {
+			this.LoadFileSelectionUI(snv, mainDiv);
 		}
-		for (let i = 0; i < folderToDisplay.containedFileIDs.length; i++) {
-			const containedFile = await FormattedFileHandler.LoadFile(sourceAndVault, folderToDisplay.containedFileIDs[i]);
+		const folderDisplayContainer = mainDiv.createDiv('cfe-grid');
+		for (let i = 0; i < this.containedFileIDs.length; i++) {
+			const containedFile = await CFEFileHandler.LoadFile(snv, this.containedFileIDs[i]);
 			if (containedFile !== null) {
-				await FormattedFileHandler.DisplayThumbnail(sourceAndVault, containedFile, folderDisplayContainer.createDiv(), container);
+				await containedFile.DisplayThumbnail(snv, folderDisplayContainer.createDiv(), mainDiv);
+			}
+		}
+	}
+	
+	private LoadCreateFileUI(snv: SourceAndVault, mainDiv: HTMLDivElement) {
+		const data = new FileCreationData(snv, 'Folder', 0);
+		const popUpContainer = mainDiv.createDiv('vbox cfe-popup');
+		popUpContainer.createEl('p', { text: 'Choose a File Type to create: ' } );
+		const fileTypeDropdown = popUpContainer.createEl('select');
+		popUpContainer.createEl('p', { text: 'Parent Folder ID: ' } );
+		const parentFolderIDInput = popUpContainer.createEl('input', { type: 'text', value: '' + this.id } );
+		for (let i = 0; i < CFEFileHandler.KnownFileTypes.length; i++) {
+			const option = fileTypeDropdown.createEl('option');
+			option.value = CFEFileHandler.KnownFileTypes[i];
+			option.text = CFEFileHandler.KnownFileTypes[i];
+			fileTypeDropdown.options.add(option);
+		}
+		const exitButton = popUpContainer.createEl('button', { text: 'X', cls: 'cfe-exit-button' } );
+		exitButton.onclick = () => {
+			popUpContainer.remove();
+		}
+		const submitButton = popUpContainer.createEl('button', { text: 'Create' } );
+		submitButton.onclick = async () => {
+			data.fileType = fileTypeDropdown.value;
+			data.parentFolderID = parseInt(parentFolderIDInput.value);
+			await CFEFileHandler.CreateNew(data);
+			exitButton.click();
+			const resettedFolder = await CFEFileHandler.LoadFile(snv, this.id);
+			await resettedFolder.Display(snv, mainDiv);
+		}
+	}
+
+	private LoadFileSelectionUI(snv: SourceAndVault, mainDiv: HTMLDivElement) {
+		const popUpContainer = mainDiv.createDiv('vbox cfe-popup');
+		popUpContainer.createEl('p', { text: 'Choose your files' } );
+		const fileInput = popUpContainer.createEl('input', { type: 'file' } );
+		fileInput.multiple = true;
+		popUpContainer.createEl('p', { text: 'Parent Folder ID: ' } );
+		const parentFolderIDInput = popUpContainer.createEl('input', { type: 'text', value: '' + this.id } );
+		const exitButton = popUpContainer.createEl('button', { text: 'X', cls: 'cfe-exit-button' } );
+		exitButton.onclick = () => {
+			popUpContainer.remove();
+		}
+		const submitButton = popUpContainer.createEl('button', { text: 'Create' } );
+		submitButton.onclick = async () => {
+			const fileArray = fileInput.files;
+			const parentFolderID = parseInt(parentFolderIDInput.value);
+			if (fileArray !== null) {
+				for (let i = 0; i < fileArray.length; i++) {
+					const data = new FileCreationData(snv, 'Single Media File', parentFolderID);
+					const cfeFile = await CFEFileHandler.CreateNew(data);
+					const mediaFile = Object.assign(new SingleMediaFile(), cfeFile);
+					await mediaFile.SetFileTo(snv, fileArray[i]);
+					await mediaFile.Save(snv);
+					console.log('i: ' + i + ' length: ' + this.containedFileIDs.length);
+				}
+				exitButton.click();
+				const resettedFolder = await CFEFileHandler.LoadFile(snv, this.id);
+				await resettedFolder.Display(snv, mainDiv);
 			}
 		}
 	}
 }
 
-export class Image extends CFEFile {
+export abstract class RealFile extends CFEFile {
 	static CLASS_DEPTH = 1;
+	fileType = 'Real File';
 
-	extensionName: string;
-
-	static override async CreateNewFileForLayer(inputForm: FileCreatorForm, unfinishedFile: CFEFile): Promise<Image> {
-		const sourceFolder = inputForm.sourceAndVault.sourceFolder;
-		const vault = inputForm.sourceAndVault.vault;
-
-		const newImageFile = <Image> (await super.CreateNewFileForLayer(inputForm, unfinishedFile));
-		const imageFileInput = <HTMLInputElement> inputForm.inputLists[Video.CLASS_DEPTH].inputFields[0].inputs[0];
-		const imageFileArray = imageFileInput.files;
-		if (imageFileArray === null) {
-			throw Error("no file was selected");
-		}
-		const imageFile = imageFileArray[0];
-		const partsOfPath = imageFile.name.split('.');
-		const extension = partsOfPath[partsOfPath.length - 1];
-		newImageFile.extensionName = extension;
-		const path = sourceFolder.vaultPath + '/' + newImageFile.id + '.' + extension;
-		const normalizedPath = normalizePath(path);
-		await vault.adapter.writeBinary(normalizedPath, await imageFile.arrayBuffer());
-		return newImageFile;
-	}
-
-	static override async DisplayForLayer(sourceAndVault: SourceAndVault, imageToDisplay: Image, container: HTMLDivElement) {
-		const sourceFolder = sourceAndVault.sourceFolder;
-		const vault = sourceAndVault.vault;
-
-		await super.DisplayForLayer(sourceAndVault, imageToDisplay, container);
-		const imageDisplayContainer = container.createDiv('cfe-display-image');
-		const imageElement = imageDisplayContainer.createEl('img');
-
-		const imagePath = sourceFolder.vaultPath + '/' + imageToDisplay.id + '.' + imageToDisplay.extensionName;
-		const imageFile = vault.getFileByPath(imagePath);
-		if (imageFile === null) {
-			throw Error('Image not found at path: ' + imagePath);
-		}
-		const arrayBuffer = await vault.readBinary(imageFile);
-		const blob = new Blob([arrayBuffer]);
-		const imageUrl = URL.createObjectURL(blob);
-		imageElement.src = imageUrl;
-	}
-
-	static override async CreateInputListForLayer(inputFormUI: FileCreatorForm) {
-		await super.CreateInputListForLayer(inputFormUI);
-		inputFormUI.inputLists.push(new FileCreatorInputList('Image', inputFormUI.inputListsContainer));
-		const inputListForLayer = inputFormUI.inputLists[Image.CLASS_DEPTH];
-
-		const imageFileInputField = new FileCreatorInputField(inputListForLayer.listContainer.createDiv(), 'Image File');
-		const imageFileInputElement = imageFileInputField.itemContainer.createEl('input', { type: 'file' } );
-		imageFileInputField.inputs.push(imageFileInputElement);
-		inputListForLayer.inputFields.push(imageFileInputField);
+	abstract getSrc(sourceAndVault: SourceAndVault): Promise<string>;
+	async DisplayMediaOnly(mediaDiv: HTMLDivElement, snv: SourceAndVault) {
+		mediaDiv.empty();
 	}
 }
 
-export class Video extends CFEFile {
-	static CLASS_DEPTH = 1;
+export class SingleMediaFile extends RealFile {
+	static CLASS_DEPTH = 2;
 
-	extensionName: string;
+	fileType = 'Single Media File';
 
-	static override async CreateNewFileForLayer(inputForm: FileCreatorForm, unfinishedFile: CFEFile): Promise<Video> {
-		const sourceFolder = inputForm.sourceAndVault.sourceFolder;
-		const vault = inputForm.sourceAndVault.vault;
+	private extensionName: string;
 
-		const newVideoFile = <Video> (await super.CreateNewFileForLayer(inputForm, unfinishedFile));
-		const videoFileInput = <HTMLInputElement> inputForm.inputLists[Video.CLASS_DEPTH].inputFields[0].inputs[0];
-		const videoFileArray = videoFileInput.files;
-		if (videoFileArray === null) {
+	get mediaType(): string {
+		switch (this.extensionName) {
+			case 'png':
+			case 'jpg':
+			case 'webp':
+			case 'heic':
+			case 'gif':
+				return 'Image';
+			case 'mp4':
+			case 'MP4':
+			case 'mov':
+			case 'MOV':
+			default:
+				return 'Video';
+		}
+	}
+
+	override async getSrc(snv: SourceAndVault): Promise<string> {
+		const mediaFile = await this.getTFile(snv);
+		const arrayBuffer = await snv.vault.readBinary(mediaFile);
+		const blob = new Blob([arrayBuffer]);
+		const mediaUrl = URL.createObjectURL(blob);
+		return mediaUrl;
+	}
+
+	private async getTFile(snv: SourceAndVault): Promise<TFile> {
+		const mediaPath = await this.getPath(snv);
+		const mediaFile = snv.vault.getFileByPath(mediaPath);
+		if (mediaFile === null) {
+			throw Error('Image not found at path: ' + mediaPath);
+		}
+		return mediaFile;
+	}
+
+	private async getPath(snv: SourceAndVault): Promise<string> {
+		const sourceFolder = snv.sourceFolder;
+		return sourceFolder.vaultPath + '/' + this.id + ' Actual File.' + this.extensionName;
+	}
+
+	static override async CreateNewFileForLayer(data: FileCreationData): Promise<SingleMediaFile> {
+		const newMediaFile = <SingleMediaFile> (await super.CreateNewFileForLayer(data));
+		newMediaFile.extensionName = '';
+		return newMediaFile;
+	}
+
+	override async Display(snv: SourceAndVault, container: HTMLDivElement) {
+		await super.Display(snv, container);
+
+		const imageDisplayContainer = container.createDiv('vbox');
+		imageDisplayContainer.createEl('p', { text: 'Change file' } );
+		const newFileInput = imageDisplayContainer.createEl('input', { type: 'file' } );
+
+		await this.DisplayMediaOnly(imageDisplayContainer, snv);
+		
+		newFileInput.onchange = async () => {
+			try {
+				const oldFile = await this.getTFile(snv);
+				try {
+					await snv.vault.delete(oldFile);
+				} finally {
+					await this.SaveNewFile(snv, newFileInput);
+					this.Display(snv, container);
+				}
+			} catch {
+				console.log();
+			}
+		}
+	}
+
+	private async SaveNewFile(snv: SourceAndVault, fileInput: HTMLInputElement) {
+		const fileArray = fileInput.files;
+		if (fileArray === null) {
 			throw Error("no file was selected");
 		}
-		const videoFile = videoFileArray[0];
-		const partsOfPath = videoFile.name.split('.');
+		const mediaFile = fileArray[0];
+		await this.SetFileTo(snv, mediaFile);
+	}
+
+	async SetFileTo(snv: SourceAndVault, mediaFile: File) {
+		const partsOfPath = mediaFile.name.split('.');
 		const extension = partsOfPath[partsOfPath.length - 1];
-		newVideoFile.extensionName = extension;
-		const path = sourceFolder.vaultPath + '/' + newVideoFile.id + '.' + extension;
+		this.fileName = partsOfPath[0];
+		this.extensionName = extension;
+		const path = snv.sourceFolder.vaultPath + '/' + this.id + ' Actual File.' + extension;
 		const normalizedPath = normalizePath(path);
-		await vault.adapter.writeBinary(normalizedPath, await videoFile.arrayBuffer());
-		return newVideoFile;
+		await snv.vault.adapter.writeBinary(normalizedPath, await mediaFile.arrayBuffer());
+		await this.Save(snv);
 	}
 
-	static override async DisplayForLayer(sourceAndVault: SourceAndVault, videoToDisplay: Video, container: HTMLDivElement) {
-		const sourceFolder = sourceAndVault.sourceFolder;
-		const vault = sourceAndVault.vault;
-
-		await super.DisplayForLayer(sourceAndVault, videoToDisplay, container);
-		const videoDisplayContainer = container.createDiv('cfe-display-video');
-		const videoElement = videoDisplayContainer.createEl('video');
-
-		const videoPath = sourceFolder.vaultPath + '/' + videoToDisplay.id + '.' + videoToDisplay.extensionName;
-		const videoFile = vault.getFileByPath(videoPath);
-		if (videoFile === null) {
-			throw Error('Video not found at path: ' + videoPath);
+	override async DisplayMediaOnly(mediaDiv: HTMLDivElement, snv: SourceAndVault) {
+		await super.DisplayMediaOnly(mediaDiv, snv);
+		if (this.mediaType === 'Image') {
+			const imageElement = mediaDiv.createEl('img');
+			imageElement.src = await this.getSrc(snv);
+		} else {
+			const videoElement = mediaDiv.createEl('video');
+			videoElement.src = await this.getSrc(snv);
+			videoElement.controls = true;
+			videoElement.loop = true;
+			videoElement.autoplay = true;
 		}
-		const arrayBuffer = await vault.readBinary(videoFile);
-		const blob = new Blob([arrayBuffer]);
-		const videoUrl = URL.createObjectURL(blob);
-		videoElement.src = videoUrl;
-		videoElement.controls = true;
-	}
-
-	static override async CreateInputListForLayer(inputForm: FileCreatorForm) {
-		await super.CreateInputListForLayer(inputForm);
-		inputForm.inputLists.push(new FileCreatorInputList('Video', inputForm.inputListsContainer));
-		const inputListForLayer = inputForm.inputLists[Video.CLASS_DEPTH];
-
-		const videoFileInputField = new FileCreatorInputField(inputListForLayer.listContainer.createDiv(), 'Video File');
-		const videoFileInputElement = videoFileInputField.itemContainer.createEl('input', { type: 'file' } );
-		videoFileInputField.inputs.push(videoFileInputElement);
-		inputListForLayer.inputFields.push(videoFileInputField);
 	}
 }
+
+export class VariantMediaFile extends RealFile {
+	static CLASS_DEPTH = 2;
+
+	fileType = 'Variant Media File';
+
+	private variantIDs: number[];
+
+	async getSrc(snv: SourceAndVault, index: number | null = null): Promise<string> {
+		if (index === null) {
+			index = Math.floor((Math.random()) * this.variantIDs.length);
+		}
+		const containedMedia = <SingleMediaFile> await CFEFileHandler.LoadFile(snv, this.variantIDs[index]);
+		return await containedMedia.getSrc(snv);
+	}
+
+	static override async CreateNewFileForLayer(data: FileCreationData): Promise<VariantMediaFile> {
+		const newMediaFile = <VariantMediaFile> (await super.CreateNewFileForLayer(data));
+		newMediaFile.variantIDs = [];
+		return newMediaFile;
+	}
+
+	override async Display(snv: SourceAndVault, container: HTMLDivElement) {
+		await super.Display(snv, container);
+
+		const imageDisplayContainer = container.createDiv('vbox');
+		imageDisplayContainer.createEl('p', { text: 'Change files' } );
+		const mediaIDInputDiv = imageDisplayContainer.createDiv('vbox');
+		const newFileButton = imageDisplayContainer.createEl('button', { text: 'Add File' } );
+		for (let i = 0; i < this.variantIDs.length; i++) {
+			const currentIndex = i;
+			const mediaIDDiv = mediaIDInputDiv.createDiv('hbox');
+			const idInput = mediaIDDiv.createEl('input', { type: 'text', value: '' + this.variantIDs[currentIndex] } );
+			const deleteButton = mediaIDDiv.createEl('button', { text: 'delete' } );
+			deleteButton.className = 'cfe-remove-button';
+			deleteButton.onclick = async () => {
+				mediaIDDiv.remove();
+				this.variantIDs.splice(currentIndex, 1);
+				await this.Save(snv);
+				await this.Display(snv, container);
+			}
+			idInput.onchange = async () => {
+				this.variantIDs[currentIndex] = parseInt(idInput.value);
+				await this.Save(snv);
+				await this.Display(snv, container);
+			}
+		}
+		newFileButton.onclick = async () => {
+			this.variantIDs.push(-1);
+			await this.Save(snv);
+			await this.Display(snv, container);
+		}
+		const mediaDiv = imageDisplayContainer.createDiv('vbox');
+		
+		await this.DisplayMediaOnly(mediaDiv, snv);
+	}
+	async DisplayMediaOnly(mediaDiv: HTMLDivElement, snv: SourceAndVault, index = -1) {
+		// This call is not needed because containedMedia.DisplayMediaOnly calls it anyway
+		// await super.DisplayMediaOnly(mediaDiv, snv);
+		if (index === -1) {
+			index = Math.floor((Math.random()) * this.variantIDs.length);
+		}
+		const containedMedia = <SingleMediaFile> await CFEFileHandler.LoadFile(snv, this.variantIDs[index]);
+		await containedMedia.DisplayMediaOnly(mediaDiv, snv);
+	}
+}
+
 
 export class Playlist extends CFEFile {
 	static CLASS_DEPTH = 1;
@@ -679,45 +647,25 @@ export class Playlist extends CFEFile {
 	}
 
 	private static async loadNextVideo(sourceAndVault: SourceAndVault, playlist: Playlist, videoElement: HTMLVideoElement) {
-		const sourceFolder = sourceAndVault.sourceFolder;
-		const vault = sourceAndVault.vault;
-
 		if (playlist.videoOrder === 'shuffled') {
 			playlist.currentVideoIndex = Playlist.getNextVideoIDShuffled(playlist);
 		} else {
 			playlist.currentVideoIndex = Playlist.getNextVideoIDInOrder(playlist);
 		}
-		const nextVideo = <Video> (await FormattedFileHandler.LoadFile(sourceAndVault, playlist.videoIDs[playlist.currentVideoIndex]));
-		const nextVideoPath = sourceFolder.vaultPath + '/' + nextVideo.id + '.' + nextVideo.extensionName;
-		const nextVideoFile = vault.getFileByPath(nextVideoPath);
-		if (nextVideoFile === null) {
-			throw Error('Video not found at path: ' + nextVideoPath);
-		}
-		const nextArrayBuffer = await vault.readBinary(nextVideoFile);
-		const nextBlob = new Blob([nextArrayBuffer]);
-		const nextVideoUrl = URL.createObjectURL(nextBlob);
-		videoElement.src = nextVideoUrl;
+		const nextVideo = <RealFile> (await CFEFileHandler.LoadFile(sourceAndVault, playlist.videoIDs[playlist.currentVideoIndex]));
+
+		videoElement.src = await nextVideo.getSrc(sourceAndVault);
 	}
 
-	static override async CreateNewFileForLayer(inputForm: FileCreatorForm, unfinishedFile: CFEFile): Promise<Playlist> {
-		const newPlaylistFile = <Playlist> (await super.CreateNewFileForLayer(inputForm, unfinishedFile));
+	static override async CreateNewFileForLayer(data: FileCreationData): Promise<Playlist> {
+		const newPlaylistFile = <Playlist> (await super.CreateNewFileForLayer(data));
 		newPlaylistFile.videoIDs = [];
-		const inputListForLayer = inputForm.inputLists[Playlist.CLASS_DEPTH];
-		const inputtedVideoIDs = inputListForLayer.inputFields[0].inputs;
-		const numVideos = inputtedVideoIDs.length;
-		for (let i = 0; i < numVideos; i++) {
-			const videoID = parseInt(inputtedVideoIDs[i].value);
-			newPlaylistFile.videoIDs.push(videoID);
-		}
 		return newPlaylistFile;
 	}
 
-	static override async DisplayForLayer(sourceAndVault: SourceAndVault, playlistToDisplay: Playlist, container: HTMLDivElement) {
-		const sourceFolder = sourceAndVault.sourceFolder;
-		const vault = sourceAndVault.vault;
-
-		await super.DisplayForLayer(sourceAndVault, playlistToDisplay, container);
-		playlistToDisplay.currentVideoIndex = 0;
+	override async Display(snv: SourceAndVault, container: HTMLDivElement) {
+		await super.Display(snv, container);
+		this.currentVideoIndex = 0;
 		const videoDisplayContainer = container.createDiv('cfe-display-video');
 		const videoElement = videoDisplayContainer.createEl('video');
 		const buttonsContainer = container.createDiv('hbox');
@@ -732,56 +680,68 @@ export class Playlist extends CFEFile {
 			}
 		}
 		const shuffleButton = buttonsContainer.createEl('button', { text: 'shuffle' } );
-				playlistToDisplay.videoOrder = 'in order';
+		this.videoOrder = 'in order';
 		shuffleButton.onclick = () => {
 			if (shuffleButton.textContent === 'shuffle') {
 				shuffleButton.textContent = 'go in order';
-				playlistToDisplay.videoOrder = 'shuffled';
+				this.videoOrder = 'shuffled';
 			} else {
 				shuffleButton.textContent = 'shuffle';
-				playlistToDisplay.videoOrder = 'in order';
+				this.videoOrder = 'in order';
 			}
 		}
 		const nextButton = buttonsContainer.createEl('button', { text: 'next video' } );
 		nextButton.onclick = async () => {
-			await Playlist.loadNextVideo(sourceAndVault, playlistToDisplay, videoElement);
+			await Playlist.loadNextVideo(snv, this, videoElement);
 		}
 
-		const firstVideo = <Video> (await FormattedFileHandler.LoadFile(sourceAndVault, playlistToDisplay.videoIDs[playlistToDisplay.currentVideoIndex]));
-		const videoPath = sourceFolder.vaultPath + '/' + firstVideo.id + '.' + firstVideo.extensionName;
-		const videoFile = vault.getFileByPath(videoPath);
-		if (videoFile === null) {
-			throw Error('Video not found at path: ' + videoPath);
-		}
-		const arrayBuffer = await vault.readBinary(videoFile);
-		const blob = new Blob([arrayBuffer]);
-		const videoUrl = URL.createObjectURL(blob);
-		videoElement.src = videoUrl;
-		videoElement.autoplay = true;
-		videoElement.controls = true;
-		videoElement.ontimeupdate = async () => {
-			if (videoElement.ended) {
-				await Playlist.loadNextVideo(sourceAndVault, playlistToDisplay, videoElement);
+		try {
+			const firstVideo = <RealFile> (await CFEFileHandler.LoadFile(snv, this.videoIDs[this.currentVideoIndex]));
+			videoElement.src = await firstVideo.getSrc(snv);
+			videoElement.autoplay = true;
+			videoElement.controls = true;
+			videoElement.ontimeupdate = async () => {
+				if (videoElement.ended) {
+					await Playlist.loadNextVideo(snv, this, videoElement);
+				}
 			}
-		}
-	}
-
-	static override async CreateInputListForLayer(inputForm: FileCreatorForm) {
-		await super.CreateInputListForLayer(inputForm);
-		inputForm.inputLists.push(new FileCreatorInputList('Playlist', inputForm.inputListsContainer));
-		const inputList = inputForm.inputLists[Playlist.CLASS_DEPTH];
-		const videoFileInput = new FileCreatorInputField(inputList.listContainer.createDiv(), 'Videos');
-		const buttonsContainer = videoFileInput.itemContainer.createDiv('hbox');
-		const addButton = buttonsContainer.createEl('button', { text: 'Add Video' } );
-		addButton.onclick = () => {
-			videoFileInput.inputs.push(videoFileInput.itemContainer.createEl('input', { type: 'text' } ));
-			inputList.inputFields.push(videoFileInput);
-		}
-		const removeButton = buttonsContainer.createEl('button', { text: 'Remove Video' } );
-		removeButton.className = 'cfe-remove-button';
-		removeButton.onclick = () => {
-			videoFileInput.itemContainer.lastChild?.remove();
-			videoFileInput.inputs.shift();
+		} finally {
+			container.createEl('p', { text: 'Change files' } );
+			let count = 0;
+			const mediaIDInputDiv = container.createDiv('vbox');
+			const newFileButton = container.createEl('button', { text: 'Add File' } );
+			for (let i = 0; i < this.videoIDs.length; i++) {
+				const currentIndex = count;
+				count++;
+				const mediaIDDiv = mediaIDInputDiv.createDiv('hbox');
+				const idInput = mediaIDDiv.createEl('input', { type: 'text', value: '' + this.videoIDs[currentIndex] } );
+				const deleteButton = mediaIDDiv.createEl('button', { text: 'delete' } );
+				deleteButton.onclick = () => {
+					mediaIDDiv.remove();
+					this.videoIDs.splice(currentIndex, 1);
+					this.Display(snv, container);
+				}
+				idInput.onchange = () => {
+					this.videoIDs[currentIndex] = parseInt(idInput.value);
+					this.Save(snv);
+				}
+			}
+			newFileButton.onclick = () => {
+				const currentIndex = count;
+				count++;
+				const mediaIDDiv = mediaIDInputDiv.createDiv('hbox');
+				const idInput = mediaIDDiv.createEl('input', { type: 'text' } );
+				const deleteButton = mediaIDDiv.createEl('button', { text: 'delete' } );
+				deleteButton.onclick = () => {
+					mediaIDDiv.remove();
+					this.videoIDs.splice(currentIndex, 1);
+					this.Display(snv, container);
+				}
+				idInput.onchange = () => {
+					this.videoIDs[currentIndex] = parseInt(idInput.value);
+					this.Save(snv);
+				}
+			}
 		}
 	}
 }

@@ -16,26 +16,19 @@
 	display: flex;
 	flex-direction: row;
 }
-.cfe-thumbnail {
-	justify-content: center;
-}
-.cfe-thumbnail-name {
-	display: flex;
-	flex-direction: row;
-	justify-content: center;
+.cfe-grid {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
 }
 .cfe-thumbnail:hover {
 	cursor: pointer;
 	background-color: var(--thumbnail-background-color);
 }
-.cfe-create-file-pop-up {
+.cfe-popup {
 	position: absolute;
 	width: 90%;
-	height: 90%;
-	top: 5%;
+	height: fit-content;
 	left: 5%;
-	right: 5%;
-	bottom: 5%;
 	padding: 1vh;
 	background-color: var(--popup-background-color);
 	z-index: 2;
@@ -48,6 +41,7 @@
 button.cfe-exit-button {
 	position: absolute;
 	background-color: var(--exit-button-color);
+	top: 0%;
 	right: 1%;
 }
 button:hover {
