@@ -1,41 +1,37 @@
 import { CustomExplorerView, VIEW_TYPE_CUSTOM_EXPLORER } from 'classes/custom-explorer-view';
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, WorkspaceLeaf } from 'obsidian';
+import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, WorkspaceLeaf } from 'obsidian';
 
 // Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
-	mySetting: string;
+interface CFECettings {
+	defaultPath: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+const DEFAULT_SETTINGS: CFECettings = {
+	defaultPath: 'source'
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class CFE extends Plugin {
+	settings: CFECettings;
 
 	async onload() {
 		await this.loadSettings();
 
 		this.registerView(
 			VIEW_TYPE_CUSTOM_EXPLORER,
-			(leaf) => new CustomExplorerView(leaf)
+			(leaf) => new CustomExplorerView(leaf, this.settings.defaultPath)
 		);
 
 		this.addRibbonIcon('folder', 'Activate view', () => {
 			this.activateView(VIEW_TYPE_CUSTOM_EXPLORER);
 		});
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
+			id: 'open-cfe-view',
+			name: 'Open Custom File Explorer View',
 			callback: () => {
-				new SampleModal(this.app).open();
+				this.activateView(VIEW_TYPE_CUSTOM_EXPLORER);
 			}
 		});
 		// This adds an editor command that can perform some operation on the current editor instance
@@ -45,25 +41,6 @@ export default class MyPlugin extends Plugin {
 			editorCallback: (editor: Editor, view: MarkdownView) => {
 				console.log(editor.getSelection());
 				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
 			}
 		});
 
@@ -96,8 +73,8 @@ export default class MyPlugin extends Plugin {
 		const { workspace } = this.app;
 
 		let leaf: WorkspaceLeaf | null = null;
-		
-		leaf = workspace.getLeaf();
+
+		leaf = workspace.getLeaf('tab');
 		if (leaf === null) {
 			new Notice("Failed to create view: workspace leaf was null");
 			return;
@@ -109,26 +86,10 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
 class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+	plugin: CFE;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: CFE) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -139,13 +100,13 @@ class SampleSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
+			.setName('Default Source Path')
+			.setDesc('The vault path to automatically fill in for the source path')
 			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+				.setPlaceholder('Default Source Path')
+				.setValue(this.plugin.settings.defaultPath)
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.defaultPath = value;
 					await this.plugin.saveSettings();
 				}));
 	}

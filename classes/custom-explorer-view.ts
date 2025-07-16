@@ -1,11 +1,13 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
-import { SourceFolder } from './formatted-file';
+import { SourceFolder } from './source-folder';
 
 export const VIEW_TYPE_CUSTOM_EXPLORER = 'custom-explorer-view';
 
 export class CustomExplorerView extends ItemView {
-	constructor(leaf: WorkspaceLeaf) {
+	defaultPath: string;
+	constructor(leaf: WorkspaceLeaf, path: string) {
 		super(leaf);
+		this.defaultPath = path;
 	}
 
 	getViewType() {
@@ -22,7 +24,8 @@ export class CustomExplorerView extends ItemView {
 		const mainContainer = wrapper.createDiv('cfe-main-display');
 		const homePage = mainContainer.createDiv('cfe-home-page');
 		homePage.createEl('h4', { text: 'Path to Source:' } );
-		const existingSourcePathInput = homePage.createEl('input', { type: 'text', value: 'source' } );
+		const existingSourcePathInput = homePage.createEl('input', { type: 'text', value: this.defaultPath } );
+		existingSourcePathInput.style.width = '100%';
 		const submitButton = homePage.createEl('button', { text: 'submit' } );
 		const vault = this.app.vault;
 		submitButton.onclick = async () => {

@@ -11,14 +11,24 @@
 .vbox {
 	display: flex;
 	flex-direction: column;
+	justify-content: top;
 }
 .hbox {
 	display: flex;
 	flex-direction: row;
+	justify-content: left;
 }
 .cfe-grid {
 	display: grid;
 	grid-template-columns: repeat(5, 1fr);
+}
+.cfe-photolang-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	grid-template-rows: repeat(3, 1fr);
+}
+.cfe-photolang-line {
+	display: grid;
 }
 .cfe-thumbnail:hover {
 	cursor: pointer;
@@ -28,6 +38,7 @@
 	position: absolute;
 	width: 90%;
 	height: fit-content;
+	top: 15%;
 	left: 5%;
 	padding: 1vh;
 	background-color: var(--popup-background-color);
@@ -47,6 +58,9 @@ button.cfe-exit-button {
 button:hover {
 	cursor: pointer;
 }
+.cfe-pointer-hover:hover {
+	cursor: pointer;
+}
 .cfe-file-creator-input-form {
 	display: flex;
 	flex-direction: row;
@@ -57,4 +71,12 @@ button:hover {
 }
 button.cfe-remove-button {
 	background-color: var(--exit-button-color);
+}
+.cfe-photoglyph {
+	font-family: Photolang;
+	border-radius: 1px;
+	border-color: var(--popup-background-color);
+}
+.cfe-photoglyph:hover {
+	background-color: var(--popup-background-color);
 }
