@@ -563,12 +563,9 @@ class PhotoLine {
 			textDiv.style.bottom = (photoGlyph.y * textSize) + 'px';
 			textDiv.style.color = photoGlyph.color;
 
-			if (i < this.glyphs.length - 1) {
-				textDiv.style.transition = speeds[this.glyphs[i + 1].speed] + 'ms';
-				await sleep(speeds[this.glyphs[i + 1].speed]);
-			} else if (doLoop) {
-				textDiv.style.transition = speeds[this.glyphs[0].speed] + 'ms';
-				await sleep(speeds[this.glyphs[0].speed]);
+			textDiv.style.transition = speeds[this.glyphs[i].speed] + 'ms';
+			await sleep(speeds[this.glyphs[i].speed]);
+			if (i === this.glyphs.length - 1) {
 				i = -1;
 			}
 		}
