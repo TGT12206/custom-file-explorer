@@ -453,9 +453,15 @@ class PhotoLine {
 					newGlyph.saturation = 0;
 					break;
 				case '-':
-					newGlyph.saturation = 0.5;
+					newGlyph.saturation = 0.25;
 					break;
 				case '=':
+					newGlyph.saturation = 0.5;
+					break;
+				case '+':
+					newGlyph.saturation = 0.75;
+					break;
+				case '*':
 					newGlyph.saturation = 1;
 					break;
 			}
