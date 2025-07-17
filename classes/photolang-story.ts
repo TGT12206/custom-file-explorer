@@ -402,7 +402,7 @@ class PhotoLine {
 				case 'p':
 					hue1 = 270;
 					break;
-				case '0':
+				case '.':
 					newGlyph.hue = 0;
 					newGlyph.saturation = 0;
 					break;
