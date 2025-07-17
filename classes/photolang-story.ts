@@ -265,10 +265,9 @@ export class PhotolangStory extends CFEFile {
 					currentOption.style.zIndex = '2';
 					currentOption.onclick = async () => {
 						this.pages[this.currentPageIndex].lines[currentIndex].speakerIndex = currentCharIndex;
-						const photoName = new PhotoLine(this.characters[currentLine.speakerIndex].name);
 						await this.Save(snv);
-						charDropdownDiv.empty();
-						photoName.Speak(charDropdownDiv, 10, [100, 250, 500], true);
+						linesDiv.empty();
+						this.LoadDialogueLinesEdit(snv, linesDiv);
 					}
 				}
 			}
@@ -359,11 +358,11 @@ class PhotoLine {
 			const glyphText = textArray[i];
 
 			let skipNext = false;
-			let j = 0;
+			let j = 1;
 
 			// speed
 			switch (glyphText[j]) {
-				case '0':
+				case '.':
 					newGlyph.speed = 0;
 					break;
 				case '-':
@@ -373,11 +372,11 @@ class PhotoLine {
 					newGlyph.speed = 2;
 					break;
 			}
-			j++;
+			j += 2;
 
 			// shape
 			newGlyph.shape = glyphText[j];
-			j++;
+			j += 2;
 
 			// hue
 			let hue1 = 0;
@@ -406,76 +405,68 @@ class PhotoLine {
 				case '0':
 					newGlyph.hue = 0;
 					newGlyph.saturation = 0;
-					skipNext = true;
 					break;
 			}
 			j++;
-			if (!skipNext) {
-				let hue2 = 0;
-				switch (glyphText[j]) {
-					case 'r':
-						hue2 = 0;
-						break;
-					case 'o':
-						hue2 = 40;
-						break;
-					case 'y':
-						hue2 = 60;
-						break;
-					case 'g':
-						hue2 = 120;
-						break;
-					case 'c':
-						hue2 = 180;
-						break;
-					case 'b':
-						hue2 = 240;
-						break;
-					case 'p':
-						hue2 = 270;
-						break;
-					case '0':
-					case '-':
-					case '=':
-						newGlyph.hue = hue1;
-						skipNext = true;
-						break;
-				}
-				if (skipNext) {
-					skipNext = false;
+			let hue2 = 0;
+			switch (glyphText[j]) {
+				case 'r':
+					hue2 = 0;
+					break;
+				case 'o':
+					hue2 = 40;
+					break;
+				case 'y':
+					hue2 = 60;
+					break;
+				case 'g':
+					hue2 = 120;
+					break;
+				case 'c':
+					hue2 = 180;
+					break;
+				case 'b':
+					hue2 = 240;
+					break;
+				case 'p':
+					hue2 = 270;
+					break;
+				default:
+					newGlyph.hue = hue1;
+					skipNext = true;
+					break;
+			}
+			if (skipNext) {
+				skipNext = false;
+				j++;
+			} else {
+				if (hue1 === 0 && hue2 === 270 || hue1 === 270 && hue2 === 0) {
+					newGlyph.hue = 315;
 				} else {
-					if (hue1 === 0 && hue2 === 270 || hue1 === 270 && hue2 === 0) {
-						newGlyph.hue = 315;
-					} else {
-						newGlyph.hue = (hue1 + hue2) / 2;
-					}
-					j++;
+					newGlyph.hue = (hue1 + hue2) / 2;
 				}
+				j += 2;
 			}
 
 			// saturation
-			if (skipNext) {
-				skipNext = false;
-			} else {
-				const saturationText = glyphText[4];
-				switch (saturationText) {
-					case '0':
-						newGlyph.saturation = 0;
-						break;
-					case '-':
-						newGlyph.saturation = 0.5;
-						break;
-					case '=':
-						newGlyph.saturation = 1;
-						break;
-				}
-				j++;
+			const saturationText = glyphText[j];
+			switch (saturationText) {
+				case '.':
+					newGlyph.saturation = 0;
+					break;
+				case '-':
+					newGlyph.saturation = 0.5;
+					break;
+				case '=':
+					newGlyph.saturation = 1;
+					break;
 			}
+			j += 2;
 
 			// value
 			const valueText = glyphText[j];
 			switch (valueText) {
-				case '0':
+				case '.':
 					newGlyph.value = 0;
 					break;
 				case '-':
@@ -485,12 +476,12 @@ class PhotoLine {
 					newGlyph.value = 1;
 					break;
 			}
-			j++;
+			j += 2;
 
 			// opacity
 			const opacityText = glyphText[j];
 			switch (opacityText) {
-				case '0':
+				case '.':
 					newGlyph.opacity = 0;
 					break;
 				case '-':
@@ -500,7 +491,7 @@ class PhotoLine {
 					newGlyph.opacity = 1;
 					break;
 			}
-			j++;
+			j += 2;
 
 			// location
 			// x
