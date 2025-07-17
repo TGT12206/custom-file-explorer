@@ -54,7 +54,7 @@ export class PhotolangStory extends CFEFile {
 				await this.LoadStoryUI(snv, div);
 			}
 			const photoName = new PhotoLine(this.characters[i].name);
-			photoName.Speak(charDiv.createDiv(), 50, [100, 500, 1000], true);
+			photoName.Speak(charDiv.createDiv(), 50, [100, 250, 500], true);
 		}
 		const addCharButton = charEditorDiv.createEl('button', { text: 'Add Character' } );
 		addCharButton.onclick = async () => {
@@ -247,9 +247,10 @@ export class PhotolangStory extends CFEFile {
 
 			lineDiv.createEl('p', { text: '' +  currentIndex } );
 
-			const charDropdownDiv = lineDiv.createDiv();
+			const charDropdownButton = lineDiv.createDiv();
+			const charDropdownDiv = charDropdownButton.createDiv();
 			charDropdownDiv.style.position = 'relative';
-			charDropdownDiv.onclick = () => {
+			charDropdownButton.onclick = () => {
 				charDropdownDiv.empty();
 				const selectDiv = charDropdownDiv.createDiv('hbox');
 				selectDiv.style.position = 'absolute';
@@ -260,20 +261,20 @@ export class PhotolangStory extends CFEFile {
 					const currentChar = this.characters[currentCharIndex];
 					const currentOption = selectDiv.createEl('div');
 					const photoName = new PhotoLine(currentChar.name);
-					photoName.Speak(currentOption, 10, [100, 500, 1000], true);
+					photoName.Speak(currentOption, 10, [100, 250, 500], true);
 					currentOption.style.zIndex = '2';
 					currentOption.onclick = async () => {
 						this.pages[this.currentPageIndex].lines[currentIndex].speakerIndex = currentCharIndex;
 						const photoName = new PhotoLine(this.characters[currentLine.speakerIndex].name);
-						photoName.Speak(currentOption, 10, [100, 500, 1000], true);
 						await this.Save(snv);
-						selectDiv.remove();
+						charDropdownDiv.empty();
+						photoName.Speak(charDropdownDiv, 10, [100, 250, 500], true);
 					}
 				}
 			}
 
 			const photoName = new PhotoLine(this.characters[currentLine.speakerIndex].name);
-			photoName.Speak(charDropdownDiv, 10, [100, 500, 1000], true);
+			photoName.Speak(charDropdownDiv, 10, [100, 250, 500], true);
 
 			const lineInput = lineDiv.createEl('input', { type: 'text', value: currentLine.content } );
 			lineInput.style.width = '100%';
@@ -289,7 +290,7 @@ export class PhotolangStory extends CFEFile {
 				popup.style.bottom = '0px';
 				popup.style.left = '0px';
 				const photoline = new PhotoLine(lineInput.value);
-				photoline.Speak(popup, 150, [100, 500, 1000], false);
+				photoline.Speak(popup, 150, [100, 250, 500], false);
 			}
 		}
 		const addButton = existingLinesDiv.createEl('button', { text: '+' } );
@@ -309,7 +310,7 @@ export class PhotolangStory extends CFEFile {
 			const lineDiv = existingLinesDiv.createDiv('hbox');
 			
 			const photoName = new PhotoLine(this.characters[currentLine.speakerIndex].name);
-			photoName.Speak(lineDiv, 10, [100, 500, 1000], true);
+			photoName.Speak(lineDiv, 10, [100, 250, 500], true);
 			
 			const photoLine = new PhotoLine(currentLine.content);
 			photoLine.DisplayStatic(lineDiv, 10);
@@ -320,7 +321,7 @@ export class PhotolangStory extends CFEFile {
 				popup.style.position = 'absolute';
 				popup.style.bottom = '0px';
 				popup.style.left = '0px';
-				photoLine.Speak(lineDiv, 150, [100, 500, 1000], false);
+				photoLine.Speak(lineDiv, 150, [100, 250, 500], false);
 			}
 		}
 	}
@@ -540,12 +541,13 @@ class PhotoLine {
 			textDiv.style.bottom = (photoGlyph.y * textSize) + 'px';
 			textDiv.style.color = photoGlyph.color;
 
-			textDiv.style.transition = speeds[this.glyphs[i].speed] + 'ms';
-			await sleep(speeds[this.glyphs[i].speed]);
 			if (i === this.glyphs.length - 1) {
 				i = -1;
 			}
+			textDiv.style.transition = speeds[photoGlyph.speed] + 'ms';
+			await sleep(speeds[photoGlyph.speed] + speeds[0]);
 		}
+		textDiv.remove();
 	}
 
 	async DisplayStatic(div: HTMLDivElement, textSize: number) {
