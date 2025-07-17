@@ -402,47 +402,49 @@ class PhotoLine {
 				case '.':
 					newGlyph.hue = 0;
 					newGlyph.saturation = 0;
-					break;
-			}
-			j++;
-			let hue2 = 0;
-			switch (glyphText[j]) {
-				case 'r':
-					hue2 = 0;
-					break;
-				case 'o':
-					hue2 = 40;
-					break;
-				case 'y':
-					hue2 = 60;
-					break;
-				case 'g':
-					hue2 = 120;
-					break;
-				case 'c':
-					hue2 = 180;
-					break;
-				case 'b':
-					hue2 = 240;
-					break;
-				case 'p':
-					hue2 = 270;
-					break;
-				default:
-					newGlyph.hue = hue1;
 					skipNext = true;
 					break;
 			}
-			if (skipNext) {
-				skipNext = false;
-			} else {
-				if (hue1 === 0 && hue2 === 270 || hue1 === 270 && hue2 === 0) {
-					newGlyph.hue = 315;
-				} else {
-					newGlyph.hue = (hue1 + hue2) / 2;
+			j++;
+			if (!skipNext) {
+				let hue2 = 0;
+				switch (glyphText[j]) {
+					case 'r':
+						hue2 = 0;
+						break;
+					case 'o':
+						hue2 = 40;
+						break;
+					case 'y':
+						hue2 = 60;
+						break;
+					case 'g':
+						hue2 = 120;
+						break;
+					case 'c':
+						hue2 = 180;
+						break;
+					case 'b':
+						hue2 = 240;
+						break;
+					case 'p':
+						hue2 = 270;
+						break;
+					default:
+						newGlyph.hue = hue1;
+						skipNext = true;
+						break;
 				}
-				j++;
+				if (!skipNext) {
+					if (hue1 === 0 && hue2 === 270 || hue1 === 270 && hue2 === 0) {
+						newGlyph.hue = 315;
+					} else {
+						newGlyph.hue = (hue1 + hue2) / 2;
+					}
+					j++;
+				}
 			}
+			skipNext = false;
 
 			// saturation
 			const saturationText = glyphText[j];
@@ -466,9 +468,15 @@ class PhotoLine {
 					newGlyph.value = 0;
 					break;
 				case '-':
-					newGlyph.value = 0.5;
+					newGlyph.value = 0.1;
 					break;
 				case '=':
+					newGlyph.value = 0.2;
+					break;
+				case '+':
+					newGlyph.value = 0.5;
+					break;
+				case '*':
 					newGlyph.value = 1;
 					break;
 			}
