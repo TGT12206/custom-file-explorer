@@ -275,7 +275,7 @@ export class PhotolangStory extends CFEFile {
 			const photoName = new PhotoLine(this.characters[currentLine.speakerIndex].name);
 			photoName.Speak(charDropdownDiv, 10, [100, 500, 1000], true);
 
-			const lineInput = lineDiv.createEl('textarea', { value: currentLine.content } );
+			const lineInput = lineDiv.createEl('input', { type: 'text', value: currentLine.content } );
 			lineInput.style.width = '100%';
 			lineInput.onchange = async () => {
 				currentLine.content = lineInput.value;
@@ -349,198 +349,175 @@ class DialogueLine {
 
 class PhotoLine {
 	glyphs: PhotoGlyph[];
-	constructor(text = '') {
+	constructor(textContent = '') {
 		this.glyphs = [];
 
-		let i = 0;
-		while (i < text.length) {
+		const textArray = textContent.split(" ").filter((c: string) => c !== "");
+		for (let i = 0; i < textArray.length; i++) {
 			const newGlyph = new PhotoGlyph();
+			const glyphText = textArray[i];
+
+			let skipNext = false;
+			let j = 0;
+
 			// speed
-			switch (text[i]) {
-				case 'm':
-					newGlyph.speed = 2;
-					i++;
-					break;
-				case 'n':
-					newGlyph.speed = 1;
-					i++;
-					break;
-				default:
+			switch (glyphText[j]) {
+				case '0':
 					newGlyph.speed = 0;
 					break;
+				case '-':
+					newGlyph.speed = 1;
+					break;
+				case '=':
+					newGlyph.speed = 2;
+					break;
 			}
+			j++;
 
 			// shape
-			newGlyph.shape = text[i];
-			i++;
+			newGlyph.shape = glyphText[j];
+			j++;
 
 			// hue
-			switch (text[i]) {
-				case 'a':
-					if (text[i + 1] === 'y') {
-						newGlyph.hue = 300;
-						i++;
-					} else if (text[i + 1] === 'e') {
-						newGlyph.hue = 20;
-						i++;
-					} else {
-						newGlyph.hue = 0;
-					}
-					break;
-				case 'e':
-					if (text[i + 1] === 'a') {
-						newGlyph.hue = 20;
-						i++;
-					} else if (text[i + 1] === 'o') {
-						newGlyph.hue = 50;
-						i++;
-					} else {
-						newGlyph.hue = 40;
-					}
+			let hue1 = 0;
+			switch (glyphText[j]) {
+				case 'r':
+					hue1 = 0;
 					break;
 				case 'o':
-					if (text[i + 1] === 'e') {
-						newGlyph.hue = 50;
-						i++;
-					} else if (text[i + 1] === 'w') {
-						newGlyph.hue = 90;
-						i++;
-					} else {
-						newGlyph.hue = 60;
-					}
-					break;
-				case 'w':
-					// moo
-					if (text[i + 1] === 'o') {
-						newGlyph.hue = 90;
-						i++;
-					} else if (text[i + 1] === 'u') {
-						newGlyph.hue = 150;
-						i++;
-					} else {
-						newGlyph.hue = 120;
-					}
-					break;
-				case 'u':
-					// schwa
-					if (text[i + 1] === 'w') {
-						newGlyph.hue = 150;
-						i++;
-					} else if (text[i + 1] === 'i') {
-						newGlyph.hue = 210;
-						i++;
-					} else {
-						newGlyph.hue = 180;
-					}
-					break;
-				case 'i':
-					// viet uw
-					if (text[i + 1] === 'i') {
-						newGlyph.hue = 210;
-						i++;
-					} else if (text[i + 1] === 'y') {
-						newGlyph.hue = 255;
-						i++;
-					} else {
-						newGlyph.hue = 240;
-					}
+					hue1 = 40;
 					break;
 				case 'y':
-					// ree
-					if (text[i + 1] === 'i') {
-						newGlyph.hue = 255;
-						i++;
-					} else if (text[i + 1] === 'a') {
-						newGlyph.hue = 300;
-						i++;
-					} else {
-						newGlyph.hue = 270;
-					}
+					hue1 = 60;
+					break;
+				case 'g':
+					hue1 = 120;
+					break;
+				case 'c':
+					hue1 = 180;
+					break;
+				case 'b':
+					hue1 = 240;
+					break;
+				case 'p':
+					hue1 = 270;
+					break;
+				case '0':
+					newGlyph.hue = 0;
+					newGlyph.saturation = 0;
+					skipNext = true;
 					break;
 			}
-			i++;
+			j++;
+			if (!skipNext) {
+				let hue2 = 0;
+				switch (glyphText[j]) {
+					case 'r':
+						hue2 = 0;
+						break;
+					case 'o':
+						hue2 = 40;
+						break;
+					case 'y':
+						hue2 = 60;
+						break;
+					case 'g':
+						hue2 = 120;
+						break;
+					case 'c':
+						hue2 = 180;
+						break;
+					case 'b':
+						hue2 = 240;
+						break;
+					case 'p':
+						hue2 = 270;
+						break;
+					case '0':
+					case '-':
+					case '=':
+						newGlyph.hue = hue1;
+						skipNext = true;
+						break;
+				}
+				if (skipNext) {
+					skipNext = false;
+				} else {
+					if (hue1 === 0 && hue2 === 270 || hue1 === 270 && hue2 === 0) {
+						newGlyph.hue = 315;
+					} else {
+						newGlyph.hue = (hue1 + hue2) / 2;
+					}
+					j++;
+				}
+			}
 
-			// saturation and value
-			switch (text[i]) {
-				case 'f':
-					newGlyph.saturation = 1;
-					newGlyph.value = 0.5;
-					i++;
-					break;
-				case 'v':
-					newGlyph.saturation = 1;
-					newGlyph.value = 1;
-					i++;
-					break;
-				case 's':
-					newGlyph.saturation = 0.5;
-					newGlyph.value = 0.5;
-					i++;
-					break;
-				case 'z':
-					newGlyph.saturation = 0.5;
-					newGlyph.value = 1;
-					i++;
-					break;
-				case 'q':
-					newGlyph.saturation = 0;
-					newGlyph.value = 0.5;
-					i++;
-					break;
-				case 'x':
-					newGlyph.saturation = 0;
-					newGlyph.value = 1;
-					i++;
-					break;
-				default:
-					newGlyph.saturation = 0;
+			// saturation
+			if (skipNext) {
+				skipNext = false;
+			} else {
+				const saturationText = glyphText[4];
+				switch (saturationText) {
+					case '0':
+						newGlyph.saturation = 0;
+						break;
+					case '-':
+						newGlyph.saturation = 0.5;
+						break;
+					case '=':
+						newGlyph.saturation = 1;
+						break;
+				}
+				j++;
+			}
+
+			// value
+			const valueText = glyphText[j];
+			switch (valueText) {
+				case '0':
 					newGlyph.value = 0;
 					break;
+				case '-':
+					newGlyph.value = 0.5;
+					break;
+				case '=':
+					newGlyph.value = 1;
+					break;
 			}
+			j++;
 
 			// opacity
-			switch (text[i]) {
-				case 'm':
-					newGlyph.opacity = 2;
-					i++;
-					break;
-				case 'n':
-					newGlyph.opacity = 1;
-					i++;
-					break;
-				default:
+			const opacityText = glyphText[j];
+			switch (opacityText) {
+				case '0':
 					newGlyph.opacity = 0;
 					break;
+				case '-':
+					newGlyph.opacity = 0.5;
+					break;
+				case '=':
+					newGlyph.opacity = 1;
+					break;
 			}
+			j++;
 
 			// location
 			// x
-			switch (text[i]) {
-				case '<':
-					newGlyph.x = 0;
-					break;
-				case '-':
-					newGlyph.x = 1;
-					break;
-				case '>':
-					newGlyph.x = 2;
-					break;
+			if (glyphText.contains('<')) {
+				newGlyph.x = 0;
+			} else if (glyphText.contains('>')) {
+				newGlyph.x = 2;
+			} else {
+				newGlyph.x = 1;
 			}
-			i++;
 			// y
-			switch (text[i]) {
-				case 'v':
-					newGlyph.y = 0;
-					break;
-				case '-':
-					newGlyph.y = 1;
-					break;
-				case '^':
-					newGlyph.y = 2;
-					break;
+			if (glyphText.contains('v')) {
+				newGlyph.y = 0;
+			} else if (glyphText.contains('^')) {
+				newGlyph.y = 2;
+			} else {
+				newGlyph.y = 1;
 			}
-			i++;
-			i++;
 			this.glyphs.push(newGlyph);
 		}
 	}
