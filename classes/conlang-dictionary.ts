@@ -49,7 +49,7 @@ export class ConlangDictionary extends CFEFile {
 	}
 
 	private async DisplayWord(snv: SourceAndVault, mainDiv: HTMLDivElement, div: HTMLDivElement, index = -1) {
-		div.createEl('p', { text: 'New Word in ' + this.language } );
+		div.createEl('p', { text: 'Word in ' + this.language } );
 		let newWordInput;
 		const isNewWord = index === -1;
 		const conlangWord = isNewWord ? '' : this.conlangWords[index];
