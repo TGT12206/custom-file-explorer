@@ -3,10 +3,9 @@ import { CFEFileHandler } from "./cfe-file-handler";
 import { FileCreationData } from "./file-creation-data";
 import { SingleMediaFile } from "./single-media-file";
 import { SourceAndVault } from "./snv";
+import { PhotoLine } from "./conlangs/photolang-text";
 
 export class PhotolangStory extends CFEFile {
-	static CLASS_DEPTH = 1;
-
 	fileType = 'Photolang Story';
 
 	private currentPageIndex: number;
@@ -54,7 +53,7 @@ export class PhotolangStory extends CFEFile {
 				await this.LoadStoryUI(snv, div);
 			}
 			const photoName = new PhotoLine(this.characters[i].name);
-			photoName.Speak(charDiv.createDiv(), 50, [100, 250, 500], true);
+			photoName.Speak(charDiv.createDiv(), 50, [100, 250, 500], [0, 500], true);
 		}
 		const addCharButton = charEditorDiv.createEl('button', { text: 'Add Character' } );
 		addCharButton.onclick = async () => {
@@ -246,6 +245,7 @@ export class PhotolangStory extends CFEFile {
 			}
 
 			lineDiv.createEl('p', { text: '' +  currentIndex } );
+			const playButton = lineDiv.createEl('button', { text: '▷' } );
 
 			const charDropdownButton = lineDiv.createDiv();
 			const charDropdownDiv = charDropdownButton.createDiv();
@@ -261,7 +261,7 @@ export class PhotolangStory extends CFEFile {
 					const currentChar = this.characters[currentCharIndex];
 					const currentOption = selectDiv.createEl('div');
 					const photoName = new PhotoLine(currentChar.name);
-					photoName.Speak(currentOption, 10, [100, 250, 500], true);
+					photoName.Speak(currentOption, 10, [100, 250, 500], [0, 500], true);
 					currentOption.style.zIndex = '2';
 					currentOption.onclick = async () => {
 						this.pages[this.currentPageIndex].lines[currentIndex].speakerIndex = currentCharIndex;
@@ -273,7 +273,7 @@ export class PhotolangStory extends CFEFile {
 			}
 
 			const photoName = new PhotoLine(this.characters[currentLine.speakerIndex].name);
-			photoName.Speak(charDropdownDiv, 10, [100, 250, 500], true);
+			photoName.Speak(charDropdownDiv, 10, [100, 250, 500], [0, 500], true);
 
 			const lineInput = lineDiv.createEl('input', { type: 'text', value: currentLine.content } );
 			lineInput.style.width = '100%';
@@ -282,14 +282,13 @@ export class PhotolangStory extends CFEFile {
 				await this.Save(snv);
 			}
 
-			const playButton = existingLinesDiv.createEl('button', { text: 'play' } );
 			playButton.onclick = () => {
 				const popup = mainDiv.createDiv();
 				popup.style.position = 'absolute';
 				popup.style.top = '0px';
 				popup.style.left = '0px';
 				const photoline = new PhotoLine(lineInput.value);
-				photoline.Speak(popup, 200, [100, 250, 500], false);
+				photoline.Speak(popup, 200, [100, 250, 500], [0, 500], false);
 			}
 		}
 		const addButton = existingLinesDiv.createEl('button', { text: '+' } );
@@ -306,21 +305,24 @@ export class PhotolangStory extends CFEFile {
 		existingLinesDiv.style.overflowY = 'scroll';
 		for (let i = 0; i < this.pages[this.currentPageIndex].lines.length; i++) {
 			const currentLine = this.pages[this.currentPageIndex].lines[i];
-			const lineDiv = existingLinesDiv.createDiv('hbox');
+
+			const playButton = existingLinesDiv.createEl('button', { text: '▷' } );
 			
+			const nameDiv = existingLinesDiv.createDiv('hbox');
+			const lineDiv = existingLinesDiv.createDiv('hbox');
+
 			const photoName = new PhotoLine(this.characters[currentLine.speakerIndex].name);
-			photoName.Speak(lineDiv, 10, [100, 250, 500], true);
+			photoName.Speak(nameDiv, 10, [100, 250, 500], [0, 500], true);
 			
 			const photoLine = new PhotoLine(currentLine.content);
 			photoLine.DisplayStatic(lineDiv, 10);
 			
-			const playButton = existingLinesDiv.createEl('button', { text: 'play' } );
 			playButton.onclick = () => {
 				const popup = mainDiv.createDiv();
 				popup.style.position = 'absolute';
 				popup.style.top = '0px';
 				popup.style.left = '0px';
-				photoLine.Speak(popup, 200, [100, 250, 500], false);
+				photoLine.Speak(popup, 200, [100, 250, 500], [0, 500], false);
 			}
 		}
 	}
@@ -344,263 +346,6 @@ class DialogueLine {
 	constructor(speakerIndex: number) {
 		this.speakerIndex = speakerIndex;
 		this.content = '';
-	}
-}
-
-class PhotoLine {
-	glyphs: PhotoGlyph[];
-	constructor(textContent = '') {
-		this.glyphs = [];
-
-		const textArray = textContent.split("   ").filter((c: string) => c !== "");
-		for (let i = 0; i < textArray.length; i++) {
-			const newGlyph = new PhotoGlyph();
-			const glyphText = textArray[i];
-
-			let skipNext = false;
-
-			// speed
-			switch (glyphText[0]) {
-				case '.':
-					newGlyph.speed = 0;
-					break;
-				case '-':
-					newGlyph.speed = 1;
-					break;
-				case '=':
-					newGlyph.speed = 2;
-					break;
-			}
-			// shape
-			newGlyph.shape = glyphText[1];
-
-			// hue
-			let hue1 = 0;
-			let j = 2;
-			switch (glyphText[2]) {
-				case 'r':
-					hue1 = 0;
-					break;
-				case 'o':
-					hue1 = 40;
-					break;
-				case 'y':
-					hue1 = 60;
-					break;
-				case 'g':
-					hue1 = 120;
-					break;
-				case 'c':
-					hue1 = 180;
-					break;
-				case 'b':
-					hue1 = 240;
-					break;
-				case 'p':
-					hue1 = 270;
-					break;
-				case '.':
-					newGlyph.hue = 0;
-					newGlyph.saturation = 0;
-					skipNext = true;
-					break;
-			}
-			j++;
-			if (!skipNext) {
-				let hue2 = 0;
-				switch (glyphText[j]) {
-					case 'r':
-						hue2 = 0;
-						break;
-					case 'o':
-						hue2 = 40;
-						break;
-					case 'y':
-						hue2 = 60;
-						break;
-					case 'g':
-						hue2 = 120;
-						break;
-					case 'c':
-						hue2 = 180;
-						break;
-					case 'b':
-						hue2 = 240;
-						break;
-					case 'p':
-						hue2 = 270;
-						break;
-					default:
-						newGlyph.hue = hue1;
-						skipNext = true;
-						break;
-				}
-				if (!skipNext) {
-					if (hue1 === 0 && hue2 === 270 || hue1 === 270 && hue2 === 0) {
-						newGlyph.hue = 315;
-					} else {
-						newGlyph.hue = (hue1 + hue2) / 2;
-					}
-					j++;
-				}
-			}
-			skipNext = false;
-
-			// saturation
-			const saturationText = glyphText[j];
-			switch (saturationText) {
-				case '.':
-					newGlyph.saturation = 0;
-					break;
-				case '-':
-					newGlyph.saturation = 0.25;
-					break;
-				case '=':
-					newGlyph.saturation = 0.5;
-					break;
-				case '+':
-					newGlyph.saturation = 0.75;
-					break;
-				case '*':
-					newGlyph.saturation = 1;
-					break;
-			}
-			j++;
-
-			// value
-			const valueText = glyphText[j];
-			switch (valueText) {
-				case '.':
-					newGlyph.value = 0;
-					break;
-				case '-':
-					newGlyph.value = 0.1;
-					break;
-				case '=':
-					newGlyph.value = 0.2;
-					break;
-				case '+':
-					newGlyph.value = 0.5;
-					break;
-				case '*':
-					newGlyph.value = 1;
-					break;
-			}
-			j++;
-
-			// opacity
-			const opacityText = glyphText[j];
-			switch (opacityText) {
-				case '.':
-					newGlyph.opacity = 0;
-					break;
-				case '-':
-					newGlyph.opacity = 0.5;
-					break;
-				case '=':
-					newGlyph.opacity = 1;
-					break;
-			}
-			j++;
-
-			// location
-			// x
-			if (glyphText.contains('<')) {
-				newGlyph.x = 0;
-			} else if (glyphText.contains('>')) {
-				newGlyph.x = 2;
-			} else {
-				newGlyph.x = 1;
-			}
-			// y
-			if (glyphText.contains('v')) {
-				newGlyph.y = 0;
-			} else if (glyphText.contains('^')) {
-				newGlyph.y = 2;
-			} else {
-				newGlyph.y = 1;
-			}
-			this.glyphs.push(newGlyph);
-		}
-	}
-
-	async Speak(div: HTMLDivElement, textSize: number, speeds: number[], doLoop = false) {
-		div.style.fontSize = textSize + 'px';
-		div.style.fontFamily = 'Photolang';
-		div.style.position = 'relative';
-		div.style.height = (textSize * 3.25) + 'px';
-		div.style.width = (textSize * 3.25) + 'px';
-		const textDiv = div.createDiv();
-		textDiv.style.position = 'absolute';
-		textDiv.style.bottom = textSize + 'px';
-		textDiv.style.transitionProperty = 'bottom, left, color';
-		for (let i = 0; i < this.glyphs.length; i++) {
-			const photoGlyph = this.glyphs[i];
-
-			textDiv.textContent = photoGlyph.shape;
-			textDiv.style.left = (photoGlyph.x * textSize) + 'px';
-			textDiv.style.bottom = (photoGlyph.y * textSize) + 'px';
-			textDiv.style.color = photoGlyph.color;
-
-			if (doLoop && i === this.glyphs.length - 1) {
-				i = -1;
-			}
-			textDiv.style.transition = speeds[photoGlyph.speed] + 'ms';
-			await sleep(speeds[photoGlyph.speed] + speeds[0]);
-		}
-		div.remove();
-	}
-
-	async DisplayStatic(div: HTMLDivElement, textSize: number) {
-		const lineDiv = div.createDiv('cfe-photolang-line');
-		lineDiv.style.gridTemplateColumns = 'repeat(10, ' + (textSize * 3.25) + 'px)';
-		lineDiv.style.gridTemplateRows = 'repeat(10, ' + (textSize * 3.25) + 'px)';
-		for (let i = 0; i < this.glyphs.length; i++) {
-			this.glyphs[i] = Object.assign(new PhotoGlyph(), this.glyphs[i]);
-			this.glyphs[i].DisplayStatic(lineDiv.createDiv(), textSize);
-		}
-	}
-
-}
-
-class PhotoGlyph {
-	shape: string;
-	x: number;
-	y: number;
-	hue: number;
-	saturation: number;
-	value: number;
-	opacity: number;
-	speed: number;
-
-	get color() {
-		// hsv values are in [0, 1]
-		let lightness = (2 - this.saturation) * this.value / 2;
-		let newS = this.saturation * this.value / (lightness < 1 ? lightness * 2 : 2 - lightness * 2);
-
-		// Handle the case where lightness is 0 or 1, which results in saturation being 0
-		if (lightness === 0 || lightness === 1) {
-			newS = 0;
-		}
-
-		lightness *= 100;
-		newS *= 100;
-
-		return 'hsla(' + this.hue + ',' + newS + '%,' + lightness + '%,' + this.opacity + ')';
-	}
-
-	DisplayStatic(div: HTMLDivElement, textSize: number) {
-		const outerDiv = div.createDiv();
-		outerDiv.style.position = 'relative';
-		outerDiv.style.width = (textSize * 3.25) + 'px';
-		outerDiv.style.height = (textSize * 3.25) + 'px';
-		outerDiv.className = 'cfe-photoglyph';
-		const glyphDiv = outerDiv.createDiv();
-		glyphDiv.style.position = 'absolute';
-		glyphDiv.textContent = this.shape;
-		glyphDiv.style.left = (this.x * textSize) + 'px';
-		glyphDiv.style.bottom = (this.y * textSize) + 'px';
-		glyphDiv.style.color = this.color;
 	}
 }
 

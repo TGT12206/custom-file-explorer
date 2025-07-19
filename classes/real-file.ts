@@ -2,7 +2,6 @@ import { CFEFile } from "./cfe-file";
 import { SourceAndVault } from "./snv";
 
 export abstract class RealFile extends CFEFile {
-	static CLASS_DEPTH = 1;
 	fileType = 'Real File';
 
 	abstract getSrc(sourceAndVault: SourceAndVault): Promise<string>;

@@ -8,8 +8,6 @@ import { SourceAndVault } from "./snv";
  * A child class of the CFEFile class. Represents a folder within the SourceFolder.
  */
 export class Folder extends CFEFile {
-	static CLASS_DEPTH = 1;
-
 	/**
 	 * The IDs of files contained in this folder
 	 */

@@ -5,8 +5,6 @@ import { SingleMediaFile } from "./single-media-file";
 import { SourceAndVault } from "./snv";
 
 export class HwayuStory extends CFEFile {
-	static CLASS_DEPTH = 1;
-
 	fileType = 'Hwayu Story';
 
 	private currentPageIndex: number;

@@ -5,8 +5,6 @@ import { RealFile } from "./real-file";
 import { SourceAndVault } from "./snv";
 
 export class Playlist extends CFEFile {
-	static CLASS_DEPTH = 1;
-
 	private currentVideoIndex: number;
 	videoIDs: number[];
 

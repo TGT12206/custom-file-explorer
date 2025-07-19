@@ -14,9 +14,6 @@ import { Folder } from "./folder";
  * that can be interpreted and displayed by the plugin.
  */
 export class CFEFile {
-	
-	static CLASS_DEPTH = 0;
-
 	/**
 	 * A unique (within the "source" of the current explorer) numerical identifier for the file
 	 */

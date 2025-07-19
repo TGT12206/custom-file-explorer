@@ -9,6 +9,7 @@ import { SourceAndVault } from "./snv";
 import { VariantMediaFile } from "./variant-media-file";
 import { SourceFolderShortcut } from "./source-folder-shortcut";
 import { PhotolangStory } from "./photolang-story";
+import { ConlangDictionary } from "./conlang-dictionary";
 
 export class CFEFileHandler {
 
@@ -22,7 +23,8 @@ export class CFEFileHandler {
 		'Playlist',
 		'Hwayu Story',
 		'Photolang Story',
-		'Source Folder Shortcut'
+		'Source Folder Shortcut',
+		'Conlang Dictionary'
 	]
 
 	static async CreateNew(data: FileCreationData): Promise<CFEFile> {
@@ -49,6 +51,9 @@ export class CFEFileHandler {
 				break;
 			case 'Source Folder Shortcut':
 				newFile = await SourceFolderShortcut.CreateNewFileForLayer(data);
+				break;
+			case 'Conlang Dictionary':
+				newFile = await ConlangDictionary.CreateNewFileForLayer(data);
 				break;
 		}
 		await newFile.Save(data.snv);
@@ -82,6 +87,8 @@ export class CFEFileHandler {
 				return Object.assign(new PhotolangStory(), plainObject);
 			case 'Source Folder Shortcut':
 				return Object.assign(new SourceFolderShortcut(), plainObject);
+			case 'Conlang Dictionary':
+				return Object.assign(new ConlangDictionary(), plainObject);
 		}
 	}
 }

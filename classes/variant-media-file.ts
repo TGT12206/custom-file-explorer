@@ -5,8 +5,6 @@ import { SingleMediaFile } from "./single-media-file";
 import { SourceAndVault } from "./snv";
 
 export class VariantMediaFile extends RealFile {
-	static CLASS_DEPTH = 2;
-
 	fileType = 'Variant Media File';
 
 	private variantIDs: number[];

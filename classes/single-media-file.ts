@@ -4,8 +4,6 @@ import { RealFile } from "./real-file";
 import { FileCreationData } from "./file-creation-data";
 
 export class SingleMediaFile extends RealFile {
-	static CLASS_DEPTH = 2;
-
 	fileType = 'Single Media File';
 
 	private extensionName: string;
