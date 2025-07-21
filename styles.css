@@ -21,6 +21,20 @@
 .cfe-grid {
 	display: grid;
 	grid-template-columns: repeat(5, 1fr);
+	column-gap: 10px;
+	row-gap: 10px;
+}
+.cfe-dictionary-grid {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	column-gap: 10px;
+	row-gap: 10px;
+}
+div.cfe-dictionary-word {
+	border: 1px;
+	border-style: solid;
+	border-radius: 5px;
+	border-color: white;
 }
 .cfe-photolang-grid {
 	display: grid;

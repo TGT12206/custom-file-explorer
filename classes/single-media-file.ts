@@ -7,7 +7,7 @@ export class SingleMediaFile extends RealFile {
 	fileType = 'Single Media File';
 
 	private extensionName: string;
-
+	
 	get mediaType(): string {
 		switch (this.extensionName) {
 			case 'png':
@@ -35,16 +35,20 @@ export class SingleMediaFile extends RealFile {
 
 	private async getTFile(snv: SourceAndVault): Promise<TFile> {
 		const mediaPath = await this.getPath(snv);
-		const mediaFile = snv.vault.getFileByPath(mediaPath);
+		let mediaFile = snv.vault.getFileByPath(mediaPath);
 		if (mediaFile === null) {
-			throw Error('Image not found at path: ' + mediaPath);
+			mediaFile = snv.vault.getFileByPath(mediaPath + '.' + this.extensionName);
+			if (mediaFile === null) {
+				throw Error('File not found at path: ' + mediaPath + ' or ' + mediaPath + '.' + this.extensionName);
+			}
+			snv.vault.rename(mediaFile, mediaPath);
 		}
 		return mediaFile;
 	}
 
 	private async getPath(snv: SourceAndVault): Promise<string> {
 		const sourceFolder = snv.sourceFolder;
-		return sourceFolder.vaultPath + '/' + this.id + ' Actual File.' + this.extensionName;
+		return sourceFolder.vaultPath + '/' + this.id + ' Actual File';
 	}
 
 	static override async CreateNewFileForLayer(data: FileCreationData): Promise<SingleMediaFile> {
@@ -91,7 +95,7 @@ export class SingleMediaFile extends RealFile {
 		const extension = partsOfPath[partsOfPath.length - 1];
 		this.fileName = partsOfPath[0];
 		this.extensionName = extension;
-		const path = snv.sourceFolder.vaultPath + '/' + this.id + ' Actual File.' + extension;
+		const path = snv.sourceFolder.vaultPath + '/' + this.id + ' Actual File';
 		const normalizedPath = normalizePath(path);
 		await snv.vault.adapter.writeBinary(normalizedPath, await mediaFile.arrayBuffer());
 		await this.Save(snv);

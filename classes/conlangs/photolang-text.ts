@@ -1,5 +1,5 @@
 export class PhotoLang {
-	static async Display(div: HTMLDivElement, text = '', fontSize = 10, moveSpeeds: number[] | null = null, durations: number[] | null = null, doLoop = false) {
+	static Display(div: HTMLDivElement, text = '', fontSize = 10, moveSpeeds: number[] | null = null, durations: number[] | null = null, doLoop = false): HTMLElement {
 		const line = new PhotoLine(text);
 		if (!moveSpeeds) {
 			moveSpeeds = [100, 250, 500];
@@ -7,12 +7,21 @@ export class PhotoLang {
 		if (!durations) {
 			durations = [0, 500];
 		}
-		await line.Speak(div, fontSize, moveSpeeds, durations, doLoop);
+		const displayDiv = div.createDiv();
+		line.Speak(displayDiv, fontSize, moveSpeeds, durations, doLoop);
+		return displayDiv;
 	}
-	static DisplayEditor(div: HTMLDivElement, existingText = '', fontSize = 17.5): HTMLInputElement | HTMLTextAreaElement {
-		const textArea = div.createEl('textarea', { value: existingText } );
+	static CreateTextArea(div: HTMLDivElement, existingText = '', fontSize = 17.5): HTMLTextAreaElement {
+		const textArea = div.createEl('textarea', { text: existingText } );
 		textArea.style.fontSize = fontSize + 'px';
+		textArea.spellcheck = false;
 		return textArea;
+	}
+	static CreateTextInput(div: HTMLDivElement, existingText = '', fontSize = 17.5): HTMLInputElement {
+		const textInput = div.createEl('input', { type: 'text', value: existingText } );
+		textInput.style.fontSize = fontSize + 'px';
+		textInput.spellcheck = false;
+		return textInput;
 	}
 }
 
@@ -22,188 +31,232 @@ export class PhotoLine {
 		this.glyphs = [];
 
 		const textArray = textContent.split("   ").filter((c: string) => c !== "");
+		textArray.push('|||');
+
+		let doSpace = false;
+
 		for (let i = 0; i < textArray.length; i++) {
 			const newGlyph = new PhotoGlyph();
 			const glyphText = textArray[i];
 
-			let j = 0;
-			let skipNext = false;
+			if (glyphText === '|||') {
+				newGlyph.hue = 0;
+				newGlyph.saturation = 0;
+				newGlyph.value = 0;
+				newGlyph.opacity = 0;
+				newGlyph.moveSpeed = 0;
+				newGlyph.duration = 0;
+				newGlyph.x = this.glyphs[this.glyphs.length - 1].x;
+				newGlyph.y = this.glyphs[this.glyphs.length - 1].y;
+				doSpace = true;
+			} else {
+				let j = 0;
+				let skipNext = false;
 
-			// move speed
-			switch (glyphText[j]) {
-				case '.':
-					newGlyph.moveSpeed = 0;
-					break;
-				case '-':
-					newGlyph.moveSpeed = 1;
-					break;
-				case '=':
-					newGlyph.moveSpeed = 2;
-					break;
-			}
-			j++;
+				// move speed
+				switch (glyphText[j]) {
+					case '.':
+						newGlyph.moveSpeed = 0;
+						break;
+					case '-':
+						newGlyph.moveSpeed = 1;
+						break;
+					case '=':
+						newGlyph.moveSpeed = 2;
+						break;
+				}
+				j++;
 
-			// duration
-			switch (glyphText[j]) {
-				case '.':
-					newGlyph.duration = 0;
-					break;
-				case '-':
-					newGlyph.duration = 1;
-					break;
-			}
-			j++;
+				// duration
+				switch (glyphText[j]) {
+					case '.':
+						newGlyph.duration = 0;
+						break;
+					case '-':
+						newGlyph.duration = 1;
+						break;
+				}
+				j++;
 
-			// shape
-			newGlyph.shape = glyphText[j];
-			j++;
+				// shape
+				newGlyph.shape = glyphText[j];
+				j++;
 
-			// hue
-			let hue1 = 0;
-			switch (glyphText[j]) {
-				case 'r':
-					hue1 = 0;
-					break;
-				case 'o':
-					hue1 = 40;
-					break;
-				case 'y':
-					hue1 = 60;
-					break;
-				case 'g':
-					hue1 = 120;
-					break;
-				case 'c':
-					hue1 = 180;
-					break;
-				case 'b':
-					hue1 = 240;
-					break;
-				case 'p':
-					hue1 = 270;
-					break;
-				case '.':
-					newGlyph.hue = 0;
-					newGlyph.saturation = 0;
-					skipNext = true;
-					break;
-			}
-			j++;
-			if (!skipNext) {
-				let hue2 = 0;
+				// hue
+				let hue1 = 0;
 				switch (glyphText[j]) {
 					case 'r':
-						hue2 = 0;
+						hue1 = 0;
 						break;
 					case 'o':
-						hue2 = 40;
+						hue1 = 40;
 						break;
 					case 'y':
-						hue2 = 60;
+						hue1 = 60;
 						break;
 					case 'g':
-						hue2 = 120;
+						hue1 = 120;
 						break;
 					case 'c':
-						hue2 = 180;
+						hue1 = 180;
 						break;
 					case 'b':
-						hue2 = 240;
+						hue1 = 240;
 						break;
 					case 'p':
-						hue2 = 270;
+						hue1 = 270;
 						break;
-					default:
-						newGlyph.hue = hue1;
+					case '.':
+						newGlyph.hue = 0;
+						newGlyph.saturation = 0;
 						skipNext = true;
 						break;
 				}
+				j++;
 				if (!skipNext) {
-					if (hue1 === 0 && hue2 === 270 || hue1 === 270 && hue2 === 0) {
-						newGlyph.hue = 315;
-					} else {
-						newGlyph.hue = (hue1 + hue2) / 2;
+					let hue2 = 0;
+					switch (glyphText[j]) {
+						case 'r':
+							hue2 = 0;
+							break;
+						case 'o':
+							hue2 = 40;
+							break;
+						case 'y':
+							hue2 = 60;
+							break;
+						case 'g':
+							hue2 = 120;
+							break;
+						case 'c':
+							hue2 = 180;
+							break;
+						case 'b':
+							hue2 = 240;
+							break;
+						case 'p':
+							hue2 = 270;
+							break;
+						default:
+							newGlyph.hue = hue1;
+							skipNext = true;
+							break;
 					}
-					j++;
+					if (!skipNext) {
+						if (hue1 === 0 && hue2 === 270 || hue1 === 270 && hue2 === 0) {
+							newGlyph.hue = 315;
+						} else {
+							newGlyph.hue = (hue1 + hue2) / 2;
+						}
+						j++;
+					}
+				}
+				skipNext = false;
+
+				// saturation
+				const saturationText = glyphText[j];
+				switch (saturationText) {
+					case '0':
+						newGlyph.saturation = 0;
+						break;
+					case '1':
+						newGlyph.saturation = 0.25;
+						break;
+					case '2':
+						newGlyph.saturation = 0.5;
+						break;
+					case '3':
+						newGlyph.saturation = 0.75;
+						break;
+					case '4':
+						newGlyph.saturation = 1;
+						break;
+				}
+				j++;
+
+				// value
+				const valueText = glyphText[j];
+				switch (valueText) {
+					case '0':
+						newGlyph.value = 0;
+						break;
+					case '1':
+						newGlyph.value = 0.1;
+						break;
+					case '2':
+						newGlyph.value = 0.2;
+						break;
+					case '3':
+						newGlyph.value = 0.5;
+						break;
+					case '4':
+						newGlyph.value = 1;
+						break;
+				}
+				j++;
+
+				// opacity
+				const opacityText = glyphText[j];
+				switch (opacityText) {
+					case '.':
+						newGlyph.opacity = 0;
+						break;
+					case '-':
+						newGlyph.opacity = 0.5;
+						break;
+					case '=':
+						newGlyph.opacity = 1;
+						break;
+				}
+				j++;
+
+				// location
+				// x
+				if (glyphText.contains('<')) {
+					newGlyph.x = 0;
+				} else if (glyphText.contains('>')) {
+					newGlyph.x = 2;
+				} else {
+					newGlyph.x = 1;
+				}
+				// y
+				if (glyphText.contains('v')) {
+					newGlyph.y = 0;
+				} else if (glyphText.contains('^')) {
+					newGlyph.y = 2;
+				} else {
+					newGlyph.y = 1;
+				}
+
+				if (doSpace) {
+					const emptyGlyph = new PhotoGlyph();
+					emptyGlyph.hue = 0;
+					emptyGlyph.saturation = 0;
+					emptyGlyph.value = 0;
+					emptyGlyph.opacity = 0;
+					emptyGlyph.moveSpeed = 0;
+					emptyGlyph.duration = 0;
+					emptyGlyph.x = newGlyph.x;
+					emptyGlyph.y = newGlyph.y;
+					doSpace = false;
+					this.glyphs.push(emptyGlyph);
 				}
 			}
-			skipNext = false;
 
-			// saturation
-			const saturationText = glyphText[j];
-			switch (saturationText) {
-				case '0':
-					newGlyph.saturation = 0;
-					break;
-				case '1':
-					newGlyph.saturation = 0.25;
-					break;
-				case '2':
-					newGlyph.saturation = 0.5;
-					break;
-				case '3':
-					newGlyph.saturation = 0.75;
-					break;
-				case '4':
-					newGlyph.saturation = 1;
-					break;
-			}
-			j++;
-
-			// value
-			const valueText = glyphText[j];
-			switch (valueText) {
-				case '0':
-					newGlyph.value = 0;
-					break;
-				case '1':
-					newGlyph.value = 0.1;
-					break;
-				case '2':
-					newGlyph.value = 0.2;
-					break;
-				case '3':
-					newGlyph.value = 0.5;
-					break;
-				case '4':
-					newGlyph.value = 1;
-					break;
-			}
-			j++;
-
-			// opacity
-			const opacityText = glyphText[j];
-			switch (opacityText) {
-				case '.':
-					newGlyph.opacity = 0;
-					break;
-				case '-':
-					newGlyph.opacity = 0.5;
-					break;
-				case '=':
-					newGlyph.opacity = 1;
-					break;
-			}
-			j++;
-
-			// location
-			// x
-			if (glyphText.contains('<')) {
-				newGlyph.x = 0;
-			} else if (glyphText.contains('>')) {
-				newGlyph.x = 2;
-			} else {
-				newGlyph.x = 1;
-			}
-			// y
-			if (glyphText.contains('v')) {
-				newGlyph.y = 0;
-			} else if (glyphText.contains('^')) {
-				newGlyph.y = 2;
-			} else {
-				newGlyph.y = 1;
-			}
 			this.glyphs.push(newGlyph);
+		}
+		if (doSpace) {
+			const emptyGlyph = new PhotoGlyph();
+			emptyGlyph.hue = 0;
+			emptyGlyph.saturation = 0;
+			emptyGlyph.value = 0;
+			emptyGlyph.opacity = 0;
+			emptyGlyph.moveSpeed = 0;
+			emptyGlyph.duration = 0;
+			emptyGlyph.x = this.glyphs[0].x;
+			emptyGlyph.y = this.glyphs[0].y;
+			doSpace = false;
+			this.glyphs.push(emptyGlyph);
 		}
 	}
 
