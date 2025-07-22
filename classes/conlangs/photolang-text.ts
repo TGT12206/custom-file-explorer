@@ -31,7 +31,6 @@ export class PhotoLine {
 		this.glyphs = [];
 
 		const textArray = textContent.split("   ").filter((c: string) => c !== "");
-		textArray.push('|||');
 
 		let doSpace = false;
 
@@ -210,19 +209,21 @@ export class PhotoLine {
 				}
 				j++;
 
+				const locationInfo = glyphText.substring(j);
+
 				// location
 				// x
-				if (glyphText.contains('<')) {
+				if (locationInfo.contains('<')) {
 					newGlyph.x = 0;
-				} else if (glyphText.contains('>')) {
+				} else if (locationInfo.contains('>')) {
 					newGlyph.x = 2;
 				} else {
 					newGlyph.x = 1;
 				}
 				// y
-				if (glyphText.contains('v')) {
+				if (locationInfo.contains('v')) {
 					newGlyph.y = 0;
-				} else if (glyphText.contains('^')) {
+				} else if (locationInfo.contains('^')) {
 					newGlyph.y = 2;
 				} else {
 					newGlyph.y = 1;
