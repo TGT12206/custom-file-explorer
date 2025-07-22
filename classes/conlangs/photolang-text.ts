@@ -289,9 +289,8 @@ export class PhotoLine {
 	}
 
 	async DisplayStatic(div: HTMLDivElement, textSize: number) {
-		const lineDiv = div.createDiv('cfe-photolang-line');
-		lineDiv.style.gridTemplateColumns = 'repeat(10, ' + (textSize * 3.25) + 'px)';
-		lineDiv.style.gridTemplateRows = 'repeat(10, ' + (textSize * 3.25) + 'px)';
+		const lineDiv = div.createDiv('hbox');
+		lineDiv.style.gap = '' + (textSize * 3.25) + 'px)';
 		for (let i = 0; i < this.glyphs.length; i++) {
 			this.glyphs[i] = Object.assign(new PhotoGlyph(), this.glyphs[i]);
 			this.glyphs[i].DisplayStatic(lineDiv.createDiv(), textSize);

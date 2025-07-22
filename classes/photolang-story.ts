@@ -187,7 +187,7 @@ export class PhotolangStory extends CFEFile {
 			this.pages.push(defaultPage);
 			await this.Save(snv);
 		}
-		await this.LoadDialogueLinesEdit(snv, linesDiv, mainDiv);
+		await this.LoadDialogueLinesEdit(snv, linesDiv);
 		mediaFileIDInput.onchange = async () => {
 			const currentPage = this.pages[this.currentPageIndex];
 			currentPage.mediaFileID = parseInt(mediaFileIDInput.value);
@@ -225,23 +225,26 @@ export class PhotolangStory extends CFEFile {
 			outerMediaDiv.style.width = width + '%';
 			linesDiv.style.width = 100 - width + '%';
 		}
-		await this.LoadDialogueLinesDisplayOnly(snv, linesDiv, mainDiv);
+		await this.LoadDialogueLinesDisplayOnly(linesDiv);
 	}
 
-	private async LoadDialogueLinesEdit(snv: SourceAndVault, linesDiv: HTMLDivElement, mainDiv: HTMLDivElement) {
+	private async LoadDialogueLinesEdit(snv: SourceAndVault, linesDiv: HTMLDivElement) {
+		linesDiv.empty();
+		const speakDiv = linesDiv.createDiv();
 		const existingLinesDiv = linesDiv.createDiv('vbox');
 		existingLinesDiv.style.overflowY = 'scroll';
 		for (let i = 0; i < this.pages[this.currentPageIndex].lines.length; i++) {
 			const currentIndex = i;
 			const currentLine = this.pages[this.currentPageIndex].lines[i];
 			const lineDiv = existingLinesDiv.createDiv('hbox');
+			lineDiv.style.width = '100%';
 
 			const deleteButton = lineDiv.createEl('button', { text: '-' } );
 			deleteButton.className = 'cfe-remove-button';
 			deleteButton.onclick = async () => {
 				this.pages[this.currentPageIndex].lines.splice(currentIndex, 1);
 				await this.Save(snv);
-				await this.LoadDialogueLinesEdit(snv, linesDiv, mainDiv);
+				await this.LoadDialogueLinesEdit(snv, linesDiv);
 			}
 
 			lineDiv.createEl('p', { text: '' +  currentIndex } );
@@ -267,7 +270,7 @@ export class PhotolangStory extends CFEFile {
 						this.pages[this.currentPageIndex].lines[currentIndex].speakerIndex = currentCharIndex;
 						await this.Save(snv);
 						linesDiv.empty();
-						this.LoadDialogueLinesEdit(snv, linesDiv, mainDiv);
+						this.LoadDialogueLinesEdit(snv, linesDiv);
 					}
 				}
 			}
@@ -283,7 +286,7 @@ export class PhotolangStory extends CFEFile {
 			}
 
 			playButton.onclick = () => {
-				const popup = mainDiv.createDiv();
+				const popup = speakDiv.createDiv();
 				popup.style.position = 'absolute';
 				popup.style.top = '0px';
 				popup.style.left = '0px';
@@ -296,11 +299,13 @@ export class PhotolangStory extends CFEFile {
 		addButton.onclick = async () => {
 			this.pages[this.currentPageIndex].lines.push(new DialogueLine(0));
 			await this.Save(snv);
-			await this.LoadDialogueLinesEdit(snv, linesDiv, mainDiv);
+			await this.LoadDialogueLinesEdit(snv, linesDiv);
 		}
 	}
 
-	private async LoadDialogueLinesDisplayOnly(snv: SourceAndVault, linesDiv: HTMLDivElement, mainDiv: HTMLDivElement) {
+	private async LoadDialogueLinesDisplayOnly(linesDiv: HTMLDivElement) {
+		linesDiv.empty();
+		const speakDiv = linesDiv.createDiv();
 		const existingLinesDiv = linesDiv.createDiv('vbox');
 		existingLinesDiv.style.overflowY = 'scroll';
 		for (let i = 0; i < this.pages[this.currentPageIndex].lines.length; i++) {
@@ -310,6 +315,7 @@ export class PhotolangStory extends CFEFile {
 			
 			const nameDiv = existingLinesDiv.createDiv('hbox');
 			const lineDiv = existingLinesDiv.createDiv('hbox');
+			lineDiv.style.width = '100%';
 
 			const photoName = new PhotoLine(this.characters[currentLine.speakerIndex].name);
 			photoName.Speak(nameDiv, 10, [100, 250, 500], [0, 500], true);
@@ -318,12 +324,31 @@ export class PhotolangStory extends CFEFile {
 			photoLine.DisplayStatic(lineDiv, 10);
 			
 			playButton.onclick = () => {
-				const popup = mainDiv.createDiv();
+				const popup = speakDiv.createDiv();
 				popup.style.position = 'absolute';
 				popup.style.top = '0px';
 				popup.style.left = '0px';
 				photoLine.Speak(popup, 200, [100, 250, 500], [0, 500], false);
 			}
+		}
+		for (let i = 0; i < this.pages[this.currentPageIndex].lines.length; i++) {
+			const currentLine = this.pages[this.currentPageIndex].lines[i];
+
+			const nameDiv = speakDiv.createDiv();
+			nameDiv.style.position = 'absolute';
+			nameDiv.style.top = '0px';
+			nameDiv.style.left = '0px';
+			
+			const photoName = new PhotoLine(this.characters[currentLine.speakerIndex].name);
+			await photoName.Speak(nameDiv, 100, [100, 250, 500], [0, 500], false);
+			
+			const popup = speakDiv.createDiv();
+			popup.style.position = 'absolute';
+			popup.style.top = '0px';
+			popup.style.left = '0px';
+
+			const photoLine = new PhotoLine(currentLine.content);
+			await photoLine.Speak(popup, 200, [100, 250, 500], [0, 500], false);
 		}
 	}
 

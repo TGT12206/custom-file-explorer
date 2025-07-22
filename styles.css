@@ -41,9 +41,6 @@ div.cfe-dictionary-word {
 	grid-template-columns: repeat(3, 1fr);
 	grid-template-rows: repeat(3, 1fr);
 }
-.cfe-photolang-line {
-	display: grid;
-}
 .cfe-thumbnail:hover {
 	cursor: pointer;
 	background-color: var(--thumbnail-background-color);
