@@ -238,6 +238,7 @@ export class HwayuStory extends CFEFile {
 	}
 
 	private async LoadDialogueLines(snv: SourceAndVault, linesDiv: HTMLDivElement) {
+		linesDiv.empty();
 		const existingLinesDiv = linesDiv.createDiv('hbox');
 		existingLinesDiv.style.overflowX = 'scroll';
 		const fontSize = '17.5px';

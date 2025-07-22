@@ -55,9 +55,18 @@ export class ConlangDictionary extends CFEFile {
 		wordDiv.style.fontSize = '25px';
 		const conlangWord = this.words[index][0];
 		const definition = this.words[index][1];
-		this.DisplayConlangText(wordDiv, conlangWord);
+		const conlangWordDiv = this.DisplayConlangText(wordDiv, conlangWord);
+		conlangWordDiv.classList.add('cfe-pointer-hover');
 		wordDiv.createEl('p', { text: ':' } );
 		wordDiv.createEl('p', { text: definition } );
+
+		conlangWordDiv.onclick = async () => {
+			try {
+				await navigator.clipboard.writeText(conlangWord);
+			} catch (err) {
+				console.error('Failed to copy text: ', err);
+			}
+		}
 	}
 
 	private async EditWord(snv: SourceAndVault, mainDiv: HTMLDivElement, div: HTMLDivElement, index: number) {
