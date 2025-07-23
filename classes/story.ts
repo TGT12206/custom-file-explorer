@@ -55,7 +55,7 @@ export class Story extends CFEFile {
 		let input;
 		switch(this.language) {
 			case 'Hwayu':
-				return Hwayu.CreateTextArea(div, existingWord, 25, false);
+				return Hwayu.CreateTextArea(div, existingWord, 25, this.doVertical);
 			case 'Photolang':
 				return PhotoLang.CreateTextArea(div, existingWord, 25);
 			default:
@@ -68,7 +68,7 @@ export class Story extends CFEFile {
 	private DisplayText(div: HTMLDivElement, fontSize = 25, existingWord = '') {
 		switch(this.language) {
 			case 'Hwayu':
-				return Hwayu.Display(div, existingWord, fontSize, false);
+				return Hwayu.Display(div, existingWord, fontSize, this.doVertical);
 			case 'Photolang':
 				return PhotoLang.Display(div, existingWord, fontSize, null, null, true);
 			default:
@@ -127,10 +127,12 @@ export class Story extends CFEFile {
 	}
 
 	private LoadCharacterEditorUI(snv: SourceAndVault, div: HTMLDivElement) {
-		const charEditorDiv = div.createDiv('vbox');
+		const charEditorDiv = div.createDiv();
+		charEditorDiv.className = this.doVertical ? 'hbox' : 'vbox';
 		for (let i = 0; i < this.characters.length; i++) {
 			const currentIndex = i;
-			const charDiv = charEditorDiv.createDiv('vbox');
+			const charDiv = charEditorDiv.createDiv();
+			charDiv.className = this.doVertical ? 'vbox' : 'hbox';
 
 			charDiv.createEl('p', { text: 'Name: ' } );
 			const nameInput = this.CreateTextInput(charDiv, this.characters[currentIndex].name);
@@ -141,7 +143,12 @@ export class Story extends CFEFile {
 			nameInput.onchange = async () => {
 				this.characters[currentIndex].name = nameInput.value;
 				await this.Save(snv);
-				await this.LoadStoryUI(snv, div);
+				this.LoadStoryUI(snv, div);
+			}
+			if (this.doVertical) {
+				nameInput.style.height = 'fit-content';
+			} else {
+				nameInput.style.width = 'fit-content';
 			}
 			if (this.language !== 'Photolang') {
 				this.LoadCharacterColorSelectionUI(snv, div, charEditorDiv, currentIndex);
@@ -159,7 +166,8 @@ export class Story extends CFEFile {
 	}
 
 	private LoadCharacterColorSelectionUI(snv: SourceAndVault, div: HTMLDivElement, charEditorDiv: HTMLDivElement, currentIndex: number) {
-		const colorDiv = charEditorDiv.createDiv('hbox');
+		const colorDiv = charEditorDiv.createDiv();
+		colorDiv.className = this.doVertical ? 'vbox' : 'hbox';
 		colorDiv.createEl('p', { text: 'Text Color:' } );
 		const colorInput = colorDiv.createEl('input', { type: 'color', value: this.characters[currentIndex].color } );
 		colorDiv.createEl('p', { text: 'Background Color:' } );
@@ -257,8 +265,9 @@ export class Story extends CFEFile {
 			this.pages[this.currentPageIndex].mediaSizePercentage = parseInt(mediaWidthInput.value);
 			await this.Save(snv);
 		}
-		outerMediaDiv.style.width = '50%';
+
 		const mediaDiv = outerMediaDiv.createDiv('vbox');
+		outerMediaDiv.style.width = '50%';
 		mediaDiv.style.objectFit = 'contain';
 		linesDiv.style.width = '50%';
 		linesDiv.style.maxHeight = '80vh';
@@ -324,8 +333,8 @@ export class Story extends CFEFile {
 		const outerMediaDiv = panelDiv.createDiv('vbox');
 		const linesDiv = panelDiv.createDiv('vbox');
 
-		outerMediaDiv.style.width = '50%';
 		const mediaDiv = outerMediaDiv.createDiv('vbox');
+		outerMediaDiv.style.width = '50%';
 		mediaDiv.style.objectFit = 'contain';
 		linesDiv.style.width = '50%';
 		linesDiv.style.maxHeight = '80vh';
@@ -355,10 +364,9 @@ export class Story extends CFEFile {
 		speakDiv.style.left = '0px';
 
 		const existingLinesDiv = linesDiv.createDiv();
-		existingLinesDiv.className = this.doVertical ? 'hbox' : 'vbox' ;
+		existingLinesDiv.className = this.doVertical ? 'hbox' : 'vbox';
 		if (this.doVertical) {
 			existingLinesDiv.style.overflowX = 'scroll';
-			this.MakeVertical(existingLinesDiv);
 		} else {
 			existingLinesDiv.style.overflowY = 'scroll';
 		}
@@ -368,13 +376,7 @@ export class Story extends CFEFile {
 			const speaker = this.characters[currentLine.speakerIndex];
 
 			const lineDiv = existingLinesDiv.createDiv();
-			lineDiv.className = this.doVertical ? 'vbox' : 'hbox' ;
-			if (this.doVertical) {
-				lineDiv.style.height = '100%';
-				this.MakeVertical(lineDiv);
-			} else {
-				lineDiv.style.width = '100%';
-			}
+			lineDiv.className = this.doVertical ? 'vbox' : 'hbox';
 
 			const deleteButton = lineDiv.createEl('button', { text: '-' } );
 			deleteButton.className = 'cfe-remove-button';
@@ -383,8 +385,11 @@ export class Story extends CFEFile {
 				await this.Save(snv);
 				await this.LoadDialogueLinesEdit(snv, linesDiv);
 			}
+			if (this.doVertical) {
+				this.MakeVertical(deleteButton);
+			}
 
-			const indexTextEl = lineDiv.createEl('p', { text: '' +  currentIndex } );
+			const indexTextEl = this.DisplayText(lineDiv, 25, '' + currentIndex);
 			if (this.doVertical) {
 				this.MakeVertical(indexTextEl);
 			}
@@ -399,16 +404,21 @@ export class Story extends CFEFile {
 					const photoline = new PhotoLine(lineInput.value);
 					photoline.Speak(popup, 200, [100, 250, 500], [0, 500], false);
 				}
+				if (this.doVertical) {
+					this.MakeVertical(playButton);
+				}
 			}
 
 			const charDropdownButton = lineDiv.createDiv();
 			const charDropdownDiv = charDropdownButton.createDiv();
-			charDropdownDiv.style.position = 'relative';
 			if (this.doVertical) {
+				charDropdownDiv.style.height = 'fit-content';
 				this.MakeVertical(charDropdownDiv);
+			} else {
+				charDropdownDiv.style.width = 'fit-content';
 			}
+			charDropdownDiv.style.position = 'relative';
 			charDropdownButton.onclick = () => {
-				charDropdownDiv.empty();
 				const selectDiv = charDropdownDiv.createDiv();
 				selectDiv.className = this.doVertical ? 'hbox' : 'vbox';
 				selectDiv.style.position = 'absolute';
@@ -445,6 +455,12 @@ export class Story extends CFEFile {
 			}
 
 			const lineInput = this.DisplayLineEdit(lineDiv, currentLine);
+			if (this.doVertical) {
+				lineInput.style.height = '100%';
+				this.MakeVertical(lineInput);
+			} else {
+				lineInput.style.width = '100%';
+			}
 
 			lineInput.onchange = async () => {
 				currentLine.content = lineInput.value;
@@ -452,13 +468,102 @@ export class Story extends CFEFile {
 			}
 		}
 		const addButton = existingLinesDiv.createEl('button', { text: '+' } );
-		addButton.style.width = '10px';
 		addButton.onclick = async () => {
 			this.pages[this.currentPageIndex].lines.push(new DialogueLine(0));
 			await this.Save(snv);
 			await this.LoadDialogueLinesEdit(snv, linesDiv);
 		}
 	}
+
+	// private async LoadDialogueLinesEdit(snv: SourceAndVault, linesDiv: HTMLDivElement) {
+	// 	const existingLinesDiv = linesDiv.createDiv('hbox');
+	// 	existingLinesDiv.style.overflowX = 'scroll';
+	// 	const fontSize = '17.5px';
+	// 	for (let i = 0; i < this.pages[this.currentPageIndex].lines.length; i++) {
+	// 		const currentIndex = i;
+	// 		const currentLine = this.pages[this.currentPageIndex].lines[i];
+	// 		const speakerIndex = currentLine.speakerIndex;
+	// 		const currentSpeaker = this.characters[speakerIndex];
+	// 		const lineDiv = existingLinesDiv.createDiv('vbox');
+	// 		const deleteButton = lineDiv.createEl('button', { text: '-' } );
+	// 		deleteButton.className = 'cfe-remove-button';
+	// 		deleteButton.style.writingMode = 'vertical-lr';
+	// 		deleteButton.style.textOrientation = 'upright';
+	// 		deleteButton.onclick = async () => {
+	// 			this.pages[this.currentPageIndex].lines.splice(currentIndex, 1);
+	// 			await this.Save(snv);
+	// 			await this.LoadDialogueLinesEdit(snv, linesDiv);
+	// 		}
+	// 		const indexElement = lineDiv.createEl('p', { text: '' +  currentIndex } );
+	// 		indexElement.style.color = currentSpeaker.color;
+	// 		indexElement.style.fontFamily = 'HwayuReal';
+	// 		indexElement.style.writingMode = 'vertical-lr';
+	// 		indexElement.style.textOrientation = 'upright';
+	// 		const charDropdownDiv = lineDiv.createDiv();
+	// 		charDropdownDiv.style.position = 'relative';
+	// 		const charDropdown = charDropdownDiv.createEl('button');
+	// 		charDropdown.style.height = 'fit-content';
+	// 		charDropdown.onclick = () => {
+	// 			const selectDiv = charDropdownDiv.createDiv('hbox');
+	// 			selectDiv.style.position = 'absolute';
+	// 			selectDiv.style.top = '0%';
+	// 			selectDiv.style.left = '0%';
+	// 			for (let i = 0; i < this.characters.length; i++) {
+	// 				const currentCharIndex = i;
+	// 				const currentChar = this.characters[currentCharIndex];
+	// 				const currentOption = selectDiv.createEl('button', { text: currentChar.name, value: '' + i } );
+	// 				currentOption.style.color = currentChar.color;
+	// 				currentOption.style.fontFamily = 'HwayuReal';
+	// 				currentOption.style.backgroundColor = currentChar.backgroundColor;
+	// 				currentOption.style.writingMode = 'vertical-lr';
+	// 				currentOption.style.textOrientation = 'upright';
+	// 				currentOption.style.height = 'fit-content';
+	// 				currentOption.style.zIndex = '2';
+	// 				currentOption.onclick = async () => {
+	// 					this.pages[this.currentPageIndex].lines[currentIndex].speakerIndex = currentCharIndex;
+	// 					const newSpeakerColor = this.characters[currentCharIndex].color;
+	// 					const newBackgroundColor = this.characters[currentCharIndex].backgroundColor;
+	// 					charDropdown.style.color = newSpeakerColor;
+	// 					charDropdown.style.backgroundColor = newBackgroundColor;
+	// 					charDropdown.textContent = this.characters[currentCharIndex].name;
+	// 					lineInput.style.color = newSpeakerColor;
+	// 					lineInput.style.backgroundColor = newBackgroundColor;
+	// 					indexElement.style.color = newSpeakerColor;
+	// 					await this.Save(snv);
+	// 					selectDiv.remove();
+	// 				}
+	// 			}
+	// 		}
+	// 		charDropdown.textContent = this.characters[currentLine.speakerIndex].name;
+	// 		charDropdown.style.color = currentSpeaker.color;
+	// 		charDropdown.style.backgroundColor = currentSpeaker.backgroundColor;
+	// 		charDropdown.style.fontFamily = 'HwayuReal';
+	// 		charDropdown.style.writingMode = 'vertical-lr';
+	// 		charDropdown.style.textOrientation = 'upright';
+	// 		const lineInput = lineDiv.createEl('textarea');
+	// 		lineInput.spellcheck = false;
+	// 		lineInput.style.overflowX = 'scroll';
+	// 		lineInput.style.writingMode = 'vertical-lr';
+	// 		lineInput.style.textOrientation = 'upright';
+	// 		lineInput.defaultValue = currentLine.content;
+	// 		lineInput.style.color = currentSpeaker.color;
+	// 		lineInput.style.backgroundColor = currentSpeaker.backgroundColor;
+	// 		lineInput.style.fontFamily = 'HwayuReal';
+	// 		lineInput.style.fontSize = fontSize;
+	// 		lineInput.style.height = '100%';
+	// 		lineInput.onchange = async () => {
+	// 			this.pages[this.currentPageIndex].lines[currentIndex].content = lineInput.value;
+	// 			await this.Save(snv);
+	// 		}
+	// 	}
+	// 	const addButton = existingLinesDiv.createEl('button', { text: '+' } );
+	// 	addButton.style.height = '100%';
+	// 	addButton.onclick = async () => {
+	// 		this.pages[this.currentPageIndex].lines.push(new DialogueLine(0));
+	// 		await this.Save(snv);
+	// 		await this.LoadDialogueLinesEdit(snv, linesDiv);
+	// 	}
+	// }
 
 	private async LoadDialogueLinesDisplayOnly(linesDiv: HTMLDivElement) {
 		linesDiv.empty();

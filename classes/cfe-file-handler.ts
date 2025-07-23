@@ -80,6 +80,13 @@ export class CFEFileHandler {
 				const story = Object.assign(new Story(), plainObject);
 				story.fileType = 'Story';
 				story.language = 'Hwayu';
+				for (let i = 0; i < plainObject.pages.length; i++) {
+					const page = plainObject.pages[i];
+					for (let j = 0; j < page.lines.length; j++) {
+						page.lines[j].content = page.lines[j].line;
+						delete page.lines[j].line;
+					}
+				}
 				return Object.assign(new Story(), plainObject);
 			}
 			case 'Photolang Story': {
