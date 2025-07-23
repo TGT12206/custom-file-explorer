@@ -2,14 +2,13 @@ import { Notice } from "obsidian";
 import { CFEFile } from "./cfe-file";
 import { FileCreationData } from "./file-creation-data";
 import { Folder } from "./folder";
-import { HwayuStory } from "./hwayu-story";
 import { Playlist } from "./playlist";
 import { SingleMediaFile } from "./single-media-file";
 import { SourceAndVault } from "./snv";
 import { VariantMediaFile } from "./variant-media-file";
 import { SourceFolderShortcut } from "./source-folder-shortcut";
-import { PhotolangStory } from "./photolang-story";
 import { ConlangDictionary } from "./conlang-dictionary";
+import { Story } from "./story";
 
 export class CFEFileHandler {
 
@@ -21,8 +20,7 @@ export class CFEFileHandler {
 		'Single Media File',
 		'Variant Media File',
 		'Playlist',
-		'Hwayu Story',
-		'Photolang Story',
+		'Story',
 		'Source Folder Shortcut',
 		'Conlang Dictionary'
 	]
@@ -43,11 +41,8 @@ export class CFEFileHandler {
 			case 'Playlist':
 				newFile = await Playlist.CreateNewFileForLayer(data);
 				break;
-			case 'Hwayu Story':
-				newFile = await HwayuStory.CreateNewFileForLayer(data);
-				break;
-			case 'Photolang Story':
-				newFile = await PhotolangStory.CreateNewFileForLayer(data);
+			case 'Story':
+				newFile = await Story.CreateNewFileForLayer(data);
 				break;
 			case 'Source Folder Shortcut':
 				newFile = await SourceFolderShortcut.CreateNewFileForLayer(data);
@@ -81,10 +76,20 @@ export class CFEFileHandler {
 				return Object.assign(new VariantMediaFile(), plainObject);
 			case 'Playlist':
 				return Object.assign(new Playlist(), plainObject);
-			case 'Hwayu Story':
-				return Object.assign(new HwayuStory(), plainObject);
-			case 'Photolang Story':
-				return Object.assign(new PhotolangStory(), plainObject);
+			case 'Hwayu Story': {
+				const story = Object.assign(new Story(), plainObject);
+				story.fileType = 'Story';
+				story.language = 'Hwayu';
+				return Object.assign(new Story(), plainObject);
+			}
+			case 'Photolang Story': {
+				const story = Object.assign(new Story(), plainObject);
+				story.fileType = 'Story';
+				story.language = 'Photolang';
+				return Object.assign(new Story(), plainObject);
+			}
+			case 'Story':
+				return Object.assign(new Story(), plainObject);
 			case 'Source Folder Shortcut':
 				return Object.assign(new SourceFolderShortcut(), plainObject);
 			case 'Conlang Dictionary':

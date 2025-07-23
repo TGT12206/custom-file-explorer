@@ -3,29 +3,95 @@ import { CFEFileHandler } from "./cfe-file-handler";
 import { FileCreationData } from "./file-creation-data";
 import { SingleMediaFile } from "./single-media-file";
 import { SourceAndVault } from "./snv";
-import { PhotoLine } from "./conlangs/photolang-text";
+import { PhotoLang, PhotoLine } from "./conlangs/photolang-text";
+import { Hwayu } from "./conlangs/hwayu-text";
 
-export class PhotolangStory extends CFEFile {
-	fileType = 'Photolang Story';
-
+export class Story extends CFEFile {
 	private currentPageIndex: number;
 	private pages: Page[];
 	private characters: Character[];
+	private language: string;
+	private doVertical: boolean;
 
-	static override async CreateNewFileForLayer(data: FileCreationData): Promise<PhotolangStory> {
-		const newStoryFile = <PhotolangStory> (await super.CreateNewFileForLayer(data));
+	private static knownLanguages = [
+		'English',
+		'Hwayu',
+		'Photolang'
+	]
+
+	private MakeVertical(el: HTMLElement) {
+		el.style.writingMode = 'vertical-lr';
+		el.style.textOrientation = 'upright';
+	}
+
+	private CreateTextInput(div: HTMLDivElement, existingWord = '') {
+		let input;
+		switch(this.language) {
+			case 'Hwayu':
+				return Hwayu.CreateTextInput(div, existingWord, 25, this.doVertical);
+			case 'Photolang':
+				return PhotoLang.CreateTextInput(div, existingWord, 25);
+			default:
+				input = div.createEl('input', { type: 'text', value: existingWord } );
+				input.style.fontSize = '25px';
+				return input;
+		}
+	}
+
+	private DisplayLineEdit(div: HTMLDivElement, line: DialogueLine) {
+		const input = this.CreateTextArea(div, line.content);
+		if (this.language !== 'Photolang') {
+			const speaker = this.characters[line.speakerIndex];
+			input.style.backgroundColor = speaker.backgroundColor;
+			input.style.color = speaker.color;
+		}
+		if (this.doVertical) {
+			this.MakeVertical(input);
+		}
+		return input;
+	}
+
+	private CreateTextArea(div: HTMLDivElement, existingWord = '') {
+		let input;
+		switch(this.language) {
+			case 'Hwayu':
+				return Hwayu.CreateTextArea(div, existingWord, 25, false);
+			case 'Photolang':
+				return PhotoLang.CreateTextArea(div, existingWord, 25);
+			default:
+				input = div.createEl('textarea', { text: existingWord } );
+				input.style.fontSize = '25px';
+				return input;
+		}
+	}
+
+	private DisplayText(div: HTMLDivElement, fontSize = 25, existingWord = '') {
+		switch(this.language) {
+			case 'Hwayu':
+				return Hwayu.Display(div, existingWord, fontSize, false);
+			case 'Photolang':
+				return PhotoLang.Display(div, existingWord, fontSize, null, null, true);
+			default:
+				return div.createEl('p', { text: existingWord } );
+		}
+	}
+
+	static override async CreateNewFileForLayer(data: FileCreationData): Promise<Story> {
+		const newStoryFile = <Story> (await super.CreateNewFileForLayer(data));
 		newStoryFile.currentPageIndex = 0;
 		newStoryFile.pages = [];
 		newStoryFile.characters = [];
+		newStoryFile.language = 'English';
+		newStoryFile.doVertical = false;
 		return newStoryFile;
 	}
 
 	override async Display(snv: SourceAndVault, mainDiv: HTMLDivElement) {
 		await super.Display(snv, mainDiv);
-		await this.LoadStoryUI(snv, mainDiv.createDiv('vbox'));
+		this.LoadStoryUI(snv, mainDiv.createDiv('vbox'));
 	}
 
-	private async LoadStoryUI(snv: SourceAndVault, mainDiv: HTMLDivElement) {
+	private LoadStoryUI(snv: SourceAndVault, mainDiv: HTMLDivElement) {
 		mainDiv.empty();
 		mainDiv.createEl('p', { text: 'Go to page number:' } );
 		const pageSelectDiv = mainDiv.createDiv('hbox');
@@ -36,31 +102,83 @@ export class PhotolangStory extends CFEFile {
 			this.currentPageIndex = parseInt(pageNumberInput.value) - 1;
 			this.LoadCurrentPageEdit(snv, mainDiv);
 		}
-		await this.LoadCharacterEditorUI(snv, mainDiv);
+
+		const languageInput = mainDiv.createEl('select');
+		for (let i = 0; i < Story.knownLanguages.length; i++) {
+			languageInput.createEl('option', { text: Story.knownLanguages[i], value: Story.knownLanguages[i] } );
+		}
+		languageInput.value = this.language;
+		languageInput.onchange = async () => {
+			this.language = languageInput.value;
+			await this.Save(snv);
+			this.LoadStoryUI(snv, mainDiv);
+		}
+
+		mainDiv.createEl('p', { text: 'Vertical Text' } );
+		const doVerticalBox = mainDiv.createEl('input', { type: 'checkbox' } );
+		doVerticalBox.checked = this.doVertical;
+		doVerticalBox.onclick = async () => {
+			this.doVertical = doVerticalBox.checked;
+			await this.Save(snv);
+			this.LoadStoryUI(snv, mainDiv);
+		}
+
+		this.LoadCharacterEditorUI(snv, mainDiv);
 	}
 
-	private async LoadCharacterEditorUI(snv: SourceAndVault, div: HTMLDivElement) {
+	private LoadCharacterEditorUI(snv: SourceAndVault, div: HTMLDivElement) {
 		const charEditorDiv = div.createDiv('vbox');
 		for (let i = 0; i < this.characters.length; i++) {
 			const currentIndex = i;
 			const charDiv = charEditorDiv.createDiv('vbox');
 
 			charDiv.createEl('p', { text: 'Name: ' } );
-			const nameInput = charDiv.createEl('input', { type: 'text', value: this.characters[i].name } );
+			const nameInput = this.CreateTextInput(charDiv, this.characters[currentIndex].name);
+			if (this.language !== 'Photolang') {
+				nameInput.style.backgroundColor = this.characters[currentIndex].backgroundColor;
+				nameInput.style.color = this.characters[currentIndex].color;
+			}
 			nameInput.onchange = async () => {
 				this.characters[currentIndex].name = nameInput.value;
 				await this.Save(snv);
 				await this.LoadStoryUI(snv, div);
 			}
-			const photoName = new PhotoLine(this.characters[i].name);
-			photoName.Speak(charDiv.createDiv(), 50, [100, 250, 500], [0, 500], true);
+			if (this.language !== 'Photolang') {
+				this.LoadCharacterColorSelectionUI(snv, div, charEditorDiv, currentIndex);
+			} else {
+				this.DisplayText(charDiv, 25, this.characters[currentIndex].name);
+			}
 		}
 		const addCharButton = charEditorDiv.createEl('button', { text: 'Add Character' } );
 		addCharButton.onclick = async () => {
 			this.characters.push(new Character());
 			await this.Save(snv);
 			charEditorDiv.remove();
-			await this.LoadCharacterEditorUI(snv, div);
+			this.LoadCharacterEditorUI(snv, div);
+		}
+	}
+
+	private LoadCharacterColorSelectionUI(snv: SourceAndVault, div: HTMLDivElement, charEditorDiv: HTMLDivElement, currentIndex: number) {
+		const colorDiv = charEditorDiv.createDiv('hbox');
+		colorDiv.createEl('p', { text: 'Text Color:' } );
+		const colorInput = colorDiv.createEl('input', { type: 'color', value: this.characters[currentIndex].color } );
+		colorDiv.createEl('p', { text: 'Background Color:' } );
+		const backgroundInput = colorDiv.createEl('input', { type: 'color', value: this.characters[currentIndex].backgroundColor } );
+		const swapButton = colorDiv.createEl('button', { text: 'Swap' } );
+		colorInput.onchange = async () => {
+			this.characters[currentIndex].color = colorInput.value;
+			await this.Save(snv);
+		}
+		backgroundInput.onchange = async () => {
+			this.characters[currentIndex].backgroundColor = backgroundInput.value;
+			await this.Save(snv);
+		}
+		swapButton.onclick = async () => {
+			this.characters[currentIndex].backgroundColor = colorInput.value;
+			this.characters[currentIndex].color = backgroundInput.value;
+			await this.Save(snv);
+			charEditorDiv.remove();
+			this.LoadCharacterEditorUI(snv, div);
 		}
 	}
 
@@ -230,14 +348,33 @@ export class PhotolangStory extends CFEFile {
 
 	private async LoadDialogueLinesEdit(snv: SourceAndVault, linesDiv: HTMLDivElement) {
 		linesDiv.empty();
+
 		const speakDiv = linesDiv.createDiv();
-		const existingLinesDiv = linesDiv.createDiv('vbox');
-		existingLinesDiv.style.overflowY = 'scroll';
+		speakDiv.style.position = 'absolute';
+		speakDiv.style.top = '0px';
+		speakDiv.style.left = '0px';
+
+		const existingLinesDiv = linesDiv.createDiv();
+		existingLinesDiv.className = this.doVertical ? 'hbox' : 'vbox' ;
+		if (this.doVertical) {
+			existingLinesDiv.style.overflowX = 'scroll';
+			this.MakeVertical(existingLinesDiv);
+		} else {
+			existingLinesDiv.style.overflowY = 'scroll';
+		}
 		for (let i = 0; i < this.pages[this.currentPageIndex].lines.length; i++) {
 			const currentIndex = i;
 			const currentLine = this.pages[this.currentPageIndex].lines[i];
-			const lineDiv = existingLinesDiv.createDiv('hbox');
-			lineDiv.style.width = '100%';
+			const speaker = this.characters[currentLine.speakerIndex];
+
+			const lineDiv = existingLinesDiv.createDiv();
+			lineDiv.className = this.doVertical ? 'vbox' : 'hbox' ;
+			if (this.doVertical) {
+				lineDiv.style.height = '100%';
+				this.MakeVertical(lineDiv);
+			} else {
+				lineDiv.style.width = '100%';
+			}
 
 			const deleteButton = lineDiv.createEl('button', { text: '-' } );
 			deleteButton.className = 'cfe-remove-button';
@@ -247,51 +384,71 @@ export class PhotolangStory extends CFEFile {
 				await this.LoadDialogueLinesEdit(snv, linesDiv);
 			}
 
-			lineDiv.createEl('p', { text: '' +  currentIndex } );
-			const playButton = lineDiv.createEl('button', { text: '▷' } );
+			const indexTextEl = lineDiv.createEl('p', { text: '' +  currentIndex } );
+			if (this.doVertical) {
+				this.MakeVertical(indexTextEl);
+			}
+
+			if (this.language === 'Photolang') {
+				const playButton = lineDiv.createEl('button', { text: '▷' } );
+				playButton.onclick = () => {
+					const popup = speakDiv.createDiv();
+					popup.style.position = 'absolute';
+					popup.style.top = '0px';
+					popup.style.left = '0px';
+					const photoline = new PhotoLine(lineInput.value);
+					photoline.Speak(popup, 200, [100, 250, 500], [0, 500], false);
+				}
+			}
 
 			const charDropdownButton = lineDiv.createDiv();
 			const charDropdownDiv = charDropdownButton.createDiv();
 			charDropdownDiv.style.position = 'relative';
+			if (this.doVertical) {
+				this.MakeVertical(charDropdownDiv);
+			}
 			charDropdownButton.onclick = () => {
 				charDropdownDiv.empty();
-				const selectDiv = charDropdownDiv.createDiv('hbox');
+				const selectDiv = charDropdownDiv.createDiv();
+				selectDiv.className = this.doVertical ? 'hbox' : 'vbox';
 				selectDiv.style.position = 'absolute';
 				selectDiv.style.top = '0%';
 				selectDiv.style.left = '0%';
 				for (let i = 0; i < this.characters.length; i++) {
 					const currentCharIndex = i;
 					const currentChar = this.characters[currentCharIndex];
-					const currentOption = selectDiv.createEl('div');
-					const photoName = new PhotoLine(currentChar.name);
-					photoName.Speak(currentOption, 10, [100, 250, 500], [0, 500], true);
+					const currentOption = selectDiv.createDiv();
+					if (this.doVertical) {
+						this.MakeVertical(currentOption);
+					}
+					if (this.language !== 'Photolang') {
+						currentOption.style.backgroundColor = currentChar.backgroundColor;
+						currentOption.style.color = currentChar.color;
+					}
 					currentOption.style.zIndex = '2';
+					this.DisplayText(currentOption, 25, currentChar.name);
 					currentOption.onclick = async () => {
 						this.pages[this.currentPageIndex].lines[currentIndex].speakerIndex = currentCharIndex;
 						await this.Save(snv);
-						linesDiv.empty();
 						this.LoadDialogueLinesEdit(snv, linesDiv);
 					}
 				}
 			}
 
-			const photoName = new PhotoLine(this.characters[currentLine.speakerIndex].name);
-			photoName.Speak(charDropdownDiv, 10, [100, 250, 500], [0, 500], true);
+			const nameEl = this.DisplayText(charDropdownDiv, 25, this.characters[currentLine.speakerIndex].name);
+			if (this.doVertical) {
+				this.MakeVertical(nameEl);
+			}
+			if (this.language !== 'Photolang') {
+				nameEl.style.backgroundColor = speaker.backgroundColor;
+				nameEl.style.color = speaker.color;
+			}
 
-			const lineInput = lineDiv.createEl('input', { type: 'text', value: currentLine.content } );
-			lineInput.style.width = '100%';
+			const lineInput = this.DisplayLineEdit(lineDiv, currentLine);
+
 			lineInput.onchange = async () => {
 				currentLine.content = lineInput.value;
 				await this.Save(snv);
-			}
-
-			playButton.onclick = () => {
-				const popup = speakDiv.createDiv();
-				popup.style.position = 'absolute';
-				popup.style.top = '0px';
-				popup.style.left = '0px';
-				const photoline = new PhotoLine(lineInput.value);
-				photoline.Speak(popup, 200, [100, 250, 500], [0, 500], false);
 			}
 		}
 		const addButton = existingLinesDiv.createEl('button', { text: '+' } );
@@ -305,50 +462,69 @@ export class PhotolangStory extends CFEFile {
 
 	private async LoadDialogueLinesDisplayOnly(linesDiv: HTMLDivElement) {
 		linesDiv.empty();
+
 		const speakDiv = linesDiv.createDiv();
+		speakDiv.style.position = 'absolute';
+		speakDiv.style.top = '0px';
+		speakDiv.style.left = '0px';
+
 		const existingLinesDiv = linesDiv.createDiv('vbox');
-		existingLinesDiv.style.overflowY = 'scroll';
+		existingLinesDiv.className = this.doVertical ? 'hbox' : 'vbox' ;
+		if (this.doVertical) {
+			existingLinesDiv.style.overflowX = 'scroll';
+			this.MakeVertical(existingLinesDiv);
+		} else {
+			existingLinesDiv.style.overflowY = 'scroll';
+		}
+
 		for (let i = 0; i < this.pages[this.currentPageIndex].lines.length; i++) {
 			const currentLine = this.pages[this.currentPageIndex].lines[i];
-
-			const playButton = existingLinesDiv.createEl('button', { text: '▷' } );
 			
+			if (this.language === 'Photolang') {
+				const playButton = existingLinesDiv.createEl('button', { text: '▷' } );
+				playButton.onclick = () => {
+					const popup = speakDiv.createDiv();
+					popup.style.position = 'absolute';
+					popup.style.top = '0px';
+					popup.style.left = '0px';
+					const photoline = new PhotoLine(currentLine.content);
+					photoline.Speak(popup, 200, [100, 250, 500], [0, 500], false);
+				}
+			}
+
 			const nameDiv = existingLinesDiv.createDiv('hbox');
 			const lineDiv = existingLinesDiv.createDiv('hbox');
 			lineDiv.style.width = '100%';
 
-			const photoName = new PhotoLine(this.characters[currentLine.speakerIndex].name);
-			photoName.Speak(nameDiv, 10, [100, 250, 500], [0, 500], true);
+			this.DisplayText(nameDiv, 25, this.characters[currentLine.speakerIndex].name);
 			
-			const photoLine = new PhotoLine(currentLine.content);
-			photoLine.DisplayStatic(lineDiv, 10);
-			
-			playButton.onclick = () => {
+			if (this.language === 'Photolang') {
+				const photoLine = new PhotoLine(currentLine.content);
+				photoLine.DisplayStatic(lineDiv, 25);
+			} else {
+				this.DisplayText(lineDiv, 25, currentLine.content);
+			}
+		}
+		if (this.language === 'Photolang') {
+			for (let i = 0; i < this.pages[this.currentPageIndex].lines.length; i++) {
+				const currentLine = this.pages[this.currentPageIndex].lines[i];
+
+				const nameDiv = speakDiv.createDiv();
+				nameDiv.style.position = 'absolute';
+				nameDiv.style.top = '0px';
+				nameDiv.style.left = '0px';
+				
+				const photoName = new PhotoLine(this.characters[currentLine.speakerIndex].name);
+				await photoName.Speak(nameDiv, 100, [100, 250, 500], [0, 500], false);
+				
 				const popup = speakDiv.createDiv();
 				popup.style.position = 'absolute';
 				popup.style.top = '0px';
 				popup.style.left = '0px';
-				photoLine.Speak(popup, 200, [100, 250, 500], [0, 500], false);
+
+				const photoLine = new PhotoLine(currentLine.content);
+				await photoLine.Speak(popup, 200, [100, 250, 500], [0, 500], false);
 			}
-		}
-		for (let i = 0; i < this.pages[this.currentPageIndex].lines.length; i++) {
-			const currentLine = this.pages[this.currentPageIndex].lines[i];
-
-			const nameDiv = speakDiv.createDiv();
-			nameDiv.style.position = 'absolute';
-			nameDiv.style.top = '0px';
-			nameDiv.style.left = '0px';
-			
-			const photoName = new PhotoLine(this.characters[currentLine.speakerIndex].name);
-			await photoName.Speak(nameDiv, 100, [100, 250, 500], [0, 500], false);
-			
-			const popup = speakDiv.createDiv();
-			popup.style.position = 'absolute';
-			popup.style.top = '0px';
-			popup.style.left = '0px';
-
-			const photoLine = new PhotoLine(currentLine.content);
-			await photoLine.Speak(popup, 200, [100, 250, 500], [0, 500], false);
 		}
 	}
 
@@ -376,7 +552,11 @@ class DialogueLine {
 
 class Character {
 	name: string;
-	constructor(name = '') {
+	color: string;
+	backgroundColor: string;
+	constructor(name = '', color = 'white', backgroundColor = 'white') {
 		this.name = name;
+		this.color = color;
+		this.backgroundColor = backgroundColor;
 	}
 }
