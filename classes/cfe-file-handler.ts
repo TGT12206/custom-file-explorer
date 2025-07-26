@@ -69,38 +69,19 @@ export class CFEFileHandler {
 		switch(plainObject.fileType) {
 			case 'Folder':
 			default:
-				return Object.assign(new Folder(), plainObject);
+				return await Object.assign(new Folder(), plainObject);
 			case 'Single Media File':
-				return Object.assign(new SingleMediaFile(), plainObject);
+				return await Object.assign(new SingleMediaFile(), plainObject);
 			case 'Variant Media File':
-				return Object.assign(new VariantMediaFile(), plainObject);
+				return await Object.assign(new VariantMediaFile(), plainObject);
 			case 'Playlist':
-				return Object.assign(new Playlist(), plainObject);
-			case 'Hwayu Story': {
-				const story = Object.assign(new Story(), plainObject);
-				story.fileType = 'Story';
-				story.language = 'Hwayu';
-				for (let i = 0; i < plainObject.pages.length; i++) {
-					const page = plainObject.pages[i];
-					for (let j = 0; j < page.lines.length; j++) {
-						page.lines[j].content = page.lines[j].line;
-						delete page.lines[j].line;
-					}
-				}
-				return Object.assign(new Story(), plainObject);
-			}
-			case 'Photolang Story': {
-				const story = Object.assign(new Story(), plainObject);
-				story.fileType = 'Story';
-				story.language = 'Photolang';
-				return Object.assign(new Story(), plainObject);
-			}
+				return await Object.assign(new Playlist(), plainObject);
 			case 'Story':
-				return Object.assign(new Story(), plainObject);
+				return await Object.assign(new Story(), plainObject);
 			case 'Source Folder Shortcut':
-				return Object.assign(new SourceFolderShortcut(), plainObject);
+				return await Object.assign(new SourceFolderShortcut(), plainObject);
 			case 'Conlang Dictionary':
-				return Object.assign(new ConlangDictionary(), plainObject);
+				return await Object.assign(new ConlangDictionary(), plainObject);
 		}
 	}
 }

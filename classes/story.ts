@@ -411,12 +411,8 @@ export class Story extends CFEFile {
 
 			const charDropdownButton = lineDiv.createDiv();
 			const charDropdownDiv = charDropdownButton.createDiv();
-			if (this.doVertical) {
-				charDropdownDiv.style.height = 'fit-content';
-				this.MakeVertical(charDropdownDiv);
-			} else {
-				charDropdownDiv.style.width = 'fit-content';
-			}
+			charDropdownDiv.style.height = 'fit-content';
+			charDropdownDiv.style.width = 'fit-content';
 			charDropdownDiv.style.position = 'relative';
 			charDropdownButton.onclick = () => {
 				const selectDiv = charDropdownDiv.createDiv();
@@ -577,13 +573,13 @@ export class Story extends CFEFile {
 		existingLinesDiv.className = this.doVertical ? 'hbox' : 'vbox' ;
 		if (this.doVertical) {
 			existingLinesDiv.style.overflowX = 'scroll';
-			this.MakeVertical(existingLinesDiv);
 		} else {
 			existingLinesDiv.style.overflowY = 'scroll';
 		}
 
 		for (let i = 0; i < this.pages[this.currentPageIndex].lines.length; i++) {
 			const currentLine = this.pages[this.currentPageIndex].lines[i];
+			const speaker = this.characters[currentLine.speakerIndex];
 			
 			if (this.language === 'Photolang') {
 				const playButton = existingLinesDiv.createEl('button', { text: '▷' } );
@@ -597,17 +593,22 @@ export class Story extends CFEFile {
 				}
 			}
 
-			const nameDiv = existingLinesDiv.createDiv('hbox');
-			const lineDiv = existingLinesDiv.createDiv('hbox');
-			lineDiv.style.width = '100%';
+			const nameDiv = existingLinesDiv.createDiv('');
+			nameDiv.className = this.doVertical ? 'vbox' : 'hbox';
+			const lineDiv = existingLinesDiv.createDiv('');
+			lineDiv.className = this.doVertical ? 'vbox' : 'hbox';
 
-			this.DisplayText(nameDiv, 25, this.characters[currentLine.speakerIndex].name);
+			const nameEl = this.DisplayText(nameDiv, 25, speaker.name);
+			nameEl.style.backgroundColor = speaker.backgroundColor;
+			nameEl.style.color = speaker.color;
 			
 			if (this.language === 'Photolang') {
 				const photoLine = new PhotoLine(currentLine.content);
 				photoLine.DisplayStatic(lineDiv, 25);
 			} else {
-				this.DisplayText(lineDiv, 25, currentLine.content);
+				const lineEl = this.DisplayText(lineDiv, 25, currentLine.content);
+				lineEl.style.backgroundColor = speaker.backgroundColor;
+				lineEl.style.color = speaker.color;
 			}
 		}
 		if (this.language === 'Photolang') {
