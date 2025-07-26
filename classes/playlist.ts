@@ -1,6 +1,5 @@
 import { CFEFile } from "./cfe-file";
 import { CFEFileHandler } from "./cfe-file-handler";
-import { FileCreationData } from "./file-creation-data";
 import { RealFile } from "./real-file";
 import { SourceAndVault } from "./snv";
 
@@ -34,8 +33,8 @@ export class Playlist extends CFEFile {
 		videoElement.src = await nextVideo.getSrc(sourceAndVault);
 	}
 
-	static override async CreateNewFileForLayer(data: FileCreationData): Promise<Playlist> {
-		const newPlaylistFile = <Playlist> (await super.CreateNewFileForLayer(data));
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<Playlist> {
+		const newPlaylistFile = <Playlist> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID));
 		newPlaylistFile.videoIDs = [];
 		return newPlaylistFile;
 	}

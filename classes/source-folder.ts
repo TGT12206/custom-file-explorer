@@ -1,6 +1,5 @@
 import { normalizePath, Notice, Vault } from "obsidian";
 import { CFEFileHandler } from "./cfe-file-handler";
-import { FileCreationData } from "./file-creation-data";
 import { SourceAndVault } from "./snv";
 
 export class SourceFolder {
@@ -18,8 +17,7 @@ export class SourceFolder {
 		try {
 			rootFolder = await CFEFileHandler.LoadFile(snv, 0);
 		} catch (e) {
-			const newRootFolderData = new FileCreationData(snv, 'Folder', 0);
-			rootFolder = await CFEFileHandler.CreateNew(newRootFolderData);
+			rootFolder = await CFEFileHandler.CreateNew(snv, 'Folder', 0);
 		}
 		await SourceFolder.Save(snv);
 		await rootFolder.Save(snv);

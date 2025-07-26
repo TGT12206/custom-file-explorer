@@ -1,11 +1,9 @@
 import { CFEFileHandler } from "./cfe-file-handler";
-import { FileCreationData } from "./file-creation-data";
 import { RealFile } from "./real-file";
 import { SingleMediaFile } from "./single-media-file";
 import { SourceAndVault } from "./snv";
 
 export class VariantMediaFile extends RealFile {
-	fileType = 'Variant Media File';
 
 	private variantIDs: number[];
 
@@ -17,8 +15,8 @@ export class VariantMediaFile extends RealFile {
 		return await containedMedia.getSrc(snv);
 	}
 
-	static override async CreateNewFileForLayer(data: FileCreationData): Promise<VariantMediaFile> {
-		const newMediaFile = <VariantMediaFile> (await super.CreateNewFileForLayer(data));
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<VariantMediaFile> {
+		const newMediaFile = <VariantMediaFile> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID));
 		newMediaFile.variantIDs = [];
 		return newMediaFile;
 	}

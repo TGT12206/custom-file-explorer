@@ -1,11 +1,9 @@
 import { normalizePath, TFile } from "obsidian";
 import { SourceAndVault } from "./snv";
 import { RealFile } from "./real-file";
-import { FileCreationData } from "./file-creation-data";
 
 export class SingleMediaFile extends RealFile {
-	fileType = 'Single Media File';
-
+	
 	private extensionName: string;
 	
 	get mediaType(): string {
@@ -51,8 +49,8 @@ export class SingleMediaFile extends RealFile {
 		return sourceFolder.vaultPath + '/' + this.id + ' Actual File';
 	}
 
-	static override async CreateNewFileForLayer(data: FileCreationData): Promise<SingleMediaFile> {
-		const newMediaFile = <SingleMediaFile> (await super.CreateNewFileForLayer(data));
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<SingleMediaFile> {
+		const newMediaFile = <SingleMediaFile> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID));
 		newMediaFile.extensionName = '';
 		return newMediaFile;
 	}

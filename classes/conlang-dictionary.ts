@@ -1,7 +1,6 @@
 import { CFEFile } from "./cfe-file";
 import { Hwayu } from "./conlangs/hwayu-text";
 import { PhotoLang } from "./conlangs/photolang-text";
-import { FileCreationData } from "./file-creation-data";
 import { SourceAndVault } from "./snv";
 
 export class ConlangDictionary extends CFEFile {
@@ -11,8 +10,8 @@ export class ConlangDictionary extends CFEFile {
 	searchTerm: string;
 	searchInConlang: boolean;
 
-	static override async CreateNewFileForLayer(data: FileCreationData): Promise<ConlangDictionary> {
-		const unfinishedDictionary = <ConlangDictionary> await super.CreateNewFileForLayer(data);
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<ConlangDictionary> {
+		const unfinishedDictionary = <ConlangDictionary> await super.CreateNewFileForLayer(snv, fileType, parentFolderID);
 		unfinishedDictionary.language = 'Hwayu';
 		unfinishedDictionary.words = [];
 		unfinishedDictionary.searchTerm = '';

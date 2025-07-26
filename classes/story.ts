@@ -1,6 +1,5 @@
 import { CFEFile } from "./cfe-file";
 import { CFEFileHandler } from "./cfe-file-handler";
-import { FileCreationData } from "./file-creation-data";
 import { SingleMediaFile } from "./single-media-file";
 import { SourceAndVault } from "./snv";
 import { PhotoLang, PhotoLine } from "./conlangs/photolang-text";
@@ -76,8 +75,8 @@ export class Story extends CFEFile {
 		}
 	}
 
-	static override async CreateNewFileForLayer(data: FileCreationData): Promise<Story> {
-		const newStoryFile = <Story> (await super.CreateNewFileForLayer(data));
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<Story> {
+		const newStoryFile = <Story> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID));
 		newStoryFile.currentPageIndex = 0;
 		newStoryFile.pages = [];
 		newStoryFile.characters = [];

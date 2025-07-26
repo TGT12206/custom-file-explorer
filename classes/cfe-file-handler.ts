@@ -1,6 +1,5 @@
 import { Notice } from "obsidian";
 import { CFEFile } from "./cfe-file";
-import { FileCreationData } from "./file-creation-data";
 import { Folder } from "./folder";
 import { Playlist } from "./playlist";
 import { SingleMediaFile } from "./single-media-file";
@@ -25,33 +24,33 @@ export class CFEFileHandler {
 		'Conlang Dictionary'
 	]
 
-	static async CreateNew(data: FileCreationData): Promise<CFEFile> {
+	static async CreateNew(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<CFEFile> {
 		let newFile: CFEFile;
-		switch(data.fileType) {
+		switch(fileType) {
 			case 'Folder':
 			default:
-				newFile = await Folder.CreateNewFileForLayer(data);
+				newFile = await Folder.CreateNewFileForLayer(snv, fileType, parentFolderID);
 				break;
 			case 'Single Media File':
-				newFile = await SingleMediaFile.CreateNewFileForLayer(data);
+				newFile = await SingleMediaFile.CreateNewFileForLayer(snv, fileType, parentFolderID);
 				break;
 			case 'Variant Media File':
-				newFile = await VariantMediaFile.CreateNewFileForLayer(data);
+				newFile = await VariantMediaFile.CreateNewFileForLayer(snv, fileType, parentFolderID);
 				break;
 			case 'Playlist':
-				newFile = await Playlist.CreateNewFileForLayer(data);
+				newFile = await Playlist.CreateNewFileForLayer(snv, fileType, parentFolderID);
 				break;
 			case 'Story':
-				newFile = await Story.CreateNewFileForLayer(data);
+				newFile = await Story.CreateNewFileForLayer(snv, fileType, parentFolderID);
 				break;
 			case 'Source Folder Shortcut':
-				newFile = await SourceFolderShortcut.CreateNewFileForLayer(data);
+				newFile = await SourceFolderShortcut.CreateNewFileForLayer(snv, fileType, parentFolderID);
 				break;
 			case 'Conlang Dictionary':
-				newFile = await ConlangDictionary.CreateNewFileForLayer(data);
+				newFile = await ConlangDictionary.CreateNewFileForLayer(snv, fileType, parentFolderID);
 				break;
 		}
-		await newFile.Save(data.snv);
+		await newFile.Save(snv);
 		return newFile;
 	}
 

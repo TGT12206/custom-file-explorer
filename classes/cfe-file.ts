@@ -1,6 +1,5 @@
 import { normalizePath } from "obsidian";
 import { SourceAndVault } from "./snv";
-import { FileCreationData } from "./file-creation-data";
 import { CFEFileHandler } from "./cfe-file-handler";
 import { SourceFolder } from "./source-folder";
 import { Folder } from "./folder";
@@ -48,26 +47,25 @@ export class CFEFile {
 	 * 
 	 * sets the source, id, file type, file name, and parent folder id of the file object.
 	 */
-	static async CreateNewFileForLayer(data: FileCreationData): Promise<CFEFile> {
-		const sourceAndVault = data.snv;
-		const sourceFolder = sourceAndVault.sourceFolder;
+	static async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<CFEFile> {
+		const sourceFolder = snv.sourceFolder;
 
 		// Set the values of the unfinished file
 		const unfinishedFile = new CFEFile();
 		unfinishedFile.id = sourceFolder.fileCount;
-		unfinishedFile.fileType = data.fileType;
+		unfinishedFile.fileType = fileType;
 		unfinishedFile.fileName = '';
-		unfinishedFile.parentFolderID = data.parentFolderID;
+		unfinishedFile.parentFolderID = parentFolderID;
 		
 		// Update the file count
 		sourceFolder.fileCount++;
-		await SourceFolder.Save(sourceAndVault);
+		await SourceFolder.Save(snv);
 
 		// Find the parent folder and add this file to it
 		if (unfinishedFile.id !== unfinishedFile.parentFolderID) {
-			const parentFolder = <Folder> (await CFEFileHandler.LoadFile(sourceAndVault, unfinishedFile.parentFolderID));
+			const parentFolder = <Folder> (await CFEFileHandler.LoadFile(snv, unfinishedFile.parentFolderID));
 			parentFolder.containedFileIDs.push(unfinishedFile.id);
-			await parentFolder.Save(sourceAndVault);
+			await parentFolder.Save(snv);
 		}
 
 		// Return the unfinished file so the next layer can add to it

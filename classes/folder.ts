@@ -1,6 +1,5 @@
 import { CFEFile } from "./cfe-file";
 import { CFEFileHandler } from "./cfe-file-handler";
-import { FileCreationData } from "./file-creation-data";
 import { SingleMediaFile } from "./single-media-file";
 import { SourceAndVault } from "./snv";
 
@@ -18,8 +17,8 @@ export class Folder extends CFEFile {
 	 * 
 	 * initializes the contained file ids array for the folder object
 	 */
-	static override async CreateNewFileForLayer(data: FileCreationData): Promise<Folder> {
-		const unfinishedFolder = <Folder> (await super.CreateNewFileForLayer(data));
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<Folder> {
+		const unfinishedFolder = <Folder> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID));
 		unfinishedFolder.containedFileIDs = [];
 		return unfinishedFolder;
 	}
@@ -45,8 +44,16 @@ export class Folder extends CFEFile {
 	}
 	
 	private LoadCreateFileUI(snv: SourceAndVault, mainDiv: HTMLDivElement) {
-		const data = new FileCreationData(snv, 'Folder', 0);
 		const popUpContainer = mainDiv.createDiv('vbox cfe-popup');
+		const wrapperDiv = popUpContainer.createDiv();
+		wrapperDiv.style.position = 'relative';
+		const exitButton = wrapperDiv.createEl('button', { text: 'X', cls: 'cfe-remove-button' } );
+		exitButton.style.position = 'absolute';
+		exitButton.style.top = '0%';
+		exitButton.style.right = '0%';
+		exitButton.onclick = () => {
+			popUpContainer.remove();
+		}
 		popUpContainer.createEl('p', { text: 'Choose a File Type to create: ' } );
 		const fileTypeDropdown = popUpContainer.createEl('select');
 		popUpContainer.createEl('p', { text: 'Parent Folder ID: ' } );
@@ -57,15 +64,9 @@ export class Folder extends CFEFile {
 			option.text = CFEFileHandler.KnownFileTypes[i];
 			fileTypeDropdown.options.add(option);
 		}
-		const exitButton = popUpContainer.createEl('button', { text: 'X', cls: 'cfe-exit-button' } );
-		exitButton.onclick = () => {
-			popUpContainer.remove();
-		}
 		const submitButton = popUpContainer.createEl('button', { text: 'Create' } );
 		submitButton.onclick = async () => {
-			data.fileType = fileTypeDropdown.value;
-			data.parentFolderID = parseInt(parentFolderIDInput.value);
-			await CFEFileHandler.CreateNew(data);
+			await CFEFileHandler.CreateNew(snv, fileTypeDropdown.value, parseInt(parentFolderIDInput.value));
 			exitButton.click();
 			const resettedFolder = await CFEFileHandler.LoadFile(snv, this.id);
 			await resettedFolder.Display(snv, mainDiv);
@@ -89,8 +90,7 @@ export class Folder extends CFEFile {
 			const parentFolderID = parseInt(parentFolderIDInput.value);
 			if (fileArray !== null) {
 				for (let i = 0; i < fileArray.length; i++) {
-					const data = new FileCreationData(snv, 'Single Media File', parentFolderID);
-					const cfeFile = await CFEFileHandler.CreateNew(data);
+					const cfeFile = await CFEFileHandler.CreateNew(snv, 'Single Media File', parentFolderID);
 					const mediaFile = Object.assign(new SingleMediaFile(), cfeFile);
 					await mediaFile.SetFileTo(snv, fileArray[i]);
 					await mediaFile.Save(snv);

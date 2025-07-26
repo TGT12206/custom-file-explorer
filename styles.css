@@ -60,12 +60,6 @@ div.cfe-dictionary-word {
 	flex-direction: row;
 	justify-content: left;
 }
-button.cfe-exit-button {
-	position: absolute;
-	background-color: var(--exit-button-color);
-	top: 0%;
-	right: 1%;
-}
 button:hover {
 	cursor: pointer;
 }

@@ -1,5 +1,4 @@
 import { CFEFile } from "./cfe-file";
-import { FileCreationData } from "./file-creation-data";
 import { SourceAndVault } from "./snv";
 import { SourceFolder } from "./source-folder";
 
@@ -17,8 +16,8 @@ export class SourceFolderShortcut extends CFEFile {
 	 * 
 	 * initializes the contained file ids array for the folder object
 	 */
-	static override async CreateNewFileForLayer(data: FileCreationData): Promise<SourceFolderShortcut> {
-		const unfinishedFolder = <SourceFolderShortcut> (await super.CreateNewFileForLayer(data));
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<SourceFolderShortcut> {
+		const unfinishedFolder = <SourceFolderShortcut> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID));
 		unfinishedFolder.pathToOtherSource = '';
 		return unfinishedFolder;
 	}
