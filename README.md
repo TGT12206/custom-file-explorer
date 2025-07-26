@@ -1,3 +1,5 @@
+(For those who don't know what Obsidian is, or just want to see what the plugin looks like without downloading it, I'm going to work on a video and post it to youtube and link it here)
+
 This obsidian plugin introduces a new file explorer system essentially separate from the obsidian vault.
 
 Essentially, it adds new "filetypes" (typescript classes stored in json files) that can be interpreted, displayed, and edited within the plugin view. These "filetypes" must be one of the classes implemented within the plugin. As the only developer thus far, these "filetypes" have been thought up and implemented on my whims, and as a result, they may seem very specific to my use cases.
