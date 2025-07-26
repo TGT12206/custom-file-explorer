@@ -8,7 +8,7 @@ interface CFECettings {
 }
 
 const DEFAULT_SETTINGS: CFECettings = {
-	defaultPath: 'source'
+	defaultPath: 'Source Folder'
 }
 
 export default class CFE extends Plugin {
