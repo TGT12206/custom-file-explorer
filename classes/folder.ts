@@ -27,12 +27,13 @@ export class Folder extends CFEFile {
 		await super.Display(snv, mainDiv);
 		const createButtonsDiv = mainDiv.createDiv('hbox');
 		const newFileButton = createButtonsDiv.createEl('button', { text: 'Create New File' } );
+		const popUpContainer = mainDiv.createDiv();
 		newFileButton.onclick = () => {
-			this.LoadCreateFileUI(snv, mainDiv);
+			this.LoadCreateFileUI(snv, mainDiv, popUpContainer);
 		}
 		const mediaFilesButton = createButtonsDiv.createEl('button', { text: 'Upload Multiple Images / Videos' } );
 		mediaFilesButton.onclick = () => {
-			this.LoadFileSelectionUI(snv, mainDiv);
+			this.LoadFileSelectionUI(snv, mainDiv, popUpContainer);
 		}
 		const folderDisplayContainer = mainDiv.createDiv('cfe-grid');
 		for (let i = 0; i < this.containedFileIDs.length; i++) {
@@ -43,51 +44,72 @@ export class Folder extends CFEFile {
 		}
 	}
 	
-	private LoadCreateFileUI(snv: SourceAndVault, mainDiv: HTMLDivElement) {
-		const popUpContainer = mainDiv.createDiv('vbox cfe-popup');
-		const wrapperDiv = popUpContainer.createDiv();
+	private LoadCreateFileUI(snv: SourceAndVault, mainDiv: HTMLDivElement, div: HTMLDivElement) {
+		div.empty();
+		const popupDiv = div.createDiv('cfe-popup');
+		const wrapperDiv = popupDiv.createDiv();
 		wrapperDiv.style.position = 'relative';
 		const exitButton = wrapperDiv.createEl('button', { text: 'X', cls: 'cfe-remove-button' } );
 		exitButton.style.position = 'absolute';
 		exitButton.style.top = '0%';
 		exitButton.style.right = '0%';
-		exitButton.onclick = () => {
-			popUpContainer.remove();
-		}
-		popUpContainer.createEl('p', { text: 'Choose a File Type to create:' } );
-		const fileTypeDropdown = popUpContainer.createEl('select');
-		popUpContainer.createEl('p', { text: 'File Name:' } );
-		const nameInput = popUpContainer.createEl('input', { type: 'text', value: 'Unnamed' } );
-		popUpContainer.createEl('p', { text: 'Parent Folder ID:' } );
-		const parentFolderIDInput = popUpContainer.createEl('input', { type: 'text', value: '' + this.id } );
+		
+		popupDiv.createEl('p', { text: 'Choose a File Type to create:' } );
+		const fileTypeDropdown = popupDiv.createEl('select');
+		popupDiv.createEl('p', { text: 'File Name:' } );
+		const nameInput = popupDiv.createEl('input', { type: 'text', value: 'Unnamed' } );
+		popupDiv.createEl('p', { text: 'Parent Folder ID:' } );
+		const parentFolderIDInput = popupDiv.createEl('input', { type: 'text', value: '' + this.id } );
 		for (let i = 0; i < CFEFileHandler.KnownFileTypes.length; i++) {
 			const option = fileTypeDropdown.createEl('option');
 			option.value = CFEFileHandler.KnownFileTypes[i];
 			option.text = CFEFileHandler.KnownFileTypes[i];
 			fileTypeDropdown.options.add(option);
 		}
-		const submitButton = popUpContainer.createEl('button', { text: 'Create' } );
-		submitButton.onclick = async () => {
+
+		const submitButton = popupDiv.createEl('button', { text: 'Create' } );
+
+		const onExit = () => {
+			popupDiv.remove();
+		}
+		const onSubmit = async () => {
 			await CFEFileHandler.CreateNew(snv, fileTypeDropdown.value, parseInt(parentFolderIDInput.value), nameInput.value);
 			exitButton.click();
 			const resettedFolder = await CFEFileHandler.LoadFile(snv, this.id);
 			await resettedFolder.Display(snv, mainDiv);
 		}
+		exitButton.onclick = onExit;
+		submitButton.onclick = onSubmit;
+
+		popupDiv.onkeydown = async (event) => {
+			if (event.key === 'Escape') {
+				onExit();
+			} else if (event.key === 'Enter') {
+				await onSubmit();
+			}
+		}
 	}
 
-	private LoadFileSelectionUI(snv: SourceAndVault, mainDiv: HTMLDivElement) {
-		const popUpContainer = mainDiv.createDiv('vbox cfe-popup');
-		popUpContainer.createEl('p', { text: 'Choose your files' } );
-		const fileInput = popUpContainer.createEl('input', { type: 'file' } );
+	private LoadFileSelectionUI(snv: SourceAndVault, mainDiv: HTMLDivElement, div: HTMLDivElement) {
+		div.empty();
+		const popupDiv = div.createDiv('cfe-popup');
+		const wrapperDiv = popupDiv.createDiv();
+		wrapperDiv.style.position = 'relative';
+		popupDiv.createEl('p', { text: 'Choose your files' } );
+		const fileInput = popupDiv.createEl('input', { type: 'file' } );
 		fileInput.multiple = true;
-		popUpContainer.createEl('p', { text: 'Parent Folder ID: ' } );
-		const parentFolderIDInput = popUpContainer.createEl('input', { type: 'text', value: '' + this.id } );
-		const exitButton = popUpContainer.createEl('button', { text: 'X', cls: 'cfe-exit-button' } );
-		exitButton.onclick = () => {
-			popUpContainer.remove();
+		popupDiv.createEl('p', { text: 'Parent Folder ID: ' } );
+		const parentFolderIDInput = popupDiv.createEl('input', { type: 'text', value: '' + this.id } );
+		const exitButton = wrapperDiv.createEl('button', { text: 'X', cls: 'cfe-remove-button' } );
+		exitButton.style.position = 'absolute';
+		exitButton.style.top = '0%';
+		exitButton.style.right = '0%';
+		const submitButton = popupDiv.createEl('button', { text: 'Create' } );
+		
+		const onExit = () => {
+			popupDiv.remove();
 		}
-		const submitButton = popUpContainer.createEl('button', { text: 'Create' } );
-		submitButton.onclick = async () => {
+		const onSubmit = async () => {
 			const fileArray = fileInput.files;
 			const parentFolderID = parseInt(parentFolderIDInput.value);
 			if (fileArray !== null) {
@@ -100,6 +122,16 @@ export class Folder extends CFEFile {
 				exitButton.click();
 				const resettedFolder = await CFEFileHandler.LoadFile(snv, this.id);
 				await resettedFolder.Display(snv, mainDiv);
+			}
+		}
+		exitButton.onclick = onExit;
+		submitButton.onclick = onSubmit;
+
+		popupDiv.onkeydown = async (event) => {
+			if (event.key === 'Escape') {
+				onExit();
+			} else if (event.key === 'Enter') {
+				await onSubmit();
 			}
 		}
 	}
