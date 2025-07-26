@@ -1,4 +1,3 @@
-import { Notice } from "obsidian";
 import { CFEFile } from "./cfe-file";
 import { Folder } from "./folder";
 import { Playlist } from "./playlist";
@@ -60,7 +59,6 @@ export class CFEFileHandler {
 
 		const tFile = vault.getFileByPath(sourceFolder.vaultPath + '/' + fileID + '.json');
 		if (tFile === null) {
-			new Notice("File could not be found at the path: " + sourceFolder.vaultPath + '/' + fileID + '.json');
 			throw Error("File could not be found at the path: " + sourceFolder.vaultPath + '/' + fileID + '.json');
 		}
 		const jsonData = await vault.cachedRead(tFile);

@@ -13,12 +13,11 @@ export class SourceFolder {
 
 	async Display(container: HTMLDivElement, vault: Vault) {
 		const snv = new SourceAndVault(this, vault);
-		let rootFolder;
-		try {
-			rootFolder = await CFEFileHandler.LoadFile(snv, 0);
-		} catch (e) {
-			rootFolder = await CFEFileHandler.CreateNew(snv, 'Folder', 0);
+		const notExists = vault.getFileByPath(snv.sourceFolder.vaultPath + '/0.json') === null;
+		if (notExists) {
+			await CFEFileHandler.CreateNew(snv, 'Folder', 0);
 		}
+		const rootFolder = await CFEFileHandler.LoadFile(snv, 0);
 		await SourceFolder.Save(snv);
 		await rootFolder.Save(snv);
 		await rootFolder.Display(snv, container);
