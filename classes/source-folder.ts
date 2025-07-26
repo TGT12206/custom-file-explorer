@@ -15,7 +15,7 @@ export class SourceFolder {
 		const snv = new SourceAndVault(this, vault);
 		const notExists = vault.getFileByPath(snv.sourceFolder.vaultPath + '/0.json') === null;
 		if (notExists) {
-			await CFEFileHandler.CreateNew(snv, 'Folder', 0);
+			await CFEFileHandler.CreateNew(snv, 'Folder', 0, 'Root Folder');
 		}
 		const rootFolder = await CFEFileHandler.LoadFile(snv, 0);
 		await SourceFolder.Save(snv);

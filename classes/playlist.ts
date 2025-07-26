@@ -33,8 +33,8 @@ export class Playlist extends CFEFile {
 		videoElement.src = await nextVideo.getSrc(sourceAndVault);
 	}
 
-	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<Playlist> {
-		const newPlaylistFile = <Playlist> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID));
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number, name: string): Promise<Playlist> {
+		const newPlaylistFile = <Playlist> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID, name));
 		newPlaylistFile.videoIDs = [];
 		return newPlaylistFile;
 	}

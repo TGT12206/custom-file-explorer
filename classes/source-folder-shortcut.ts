@@ -16,8 +16,8 @@ export class SourceFolderShortcut extends CFEFile {
 	 * 
 	 * initializes the contained file ids array for the folder object
 	 */
-	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<SourceFolderShortcut> {
-		const unfinishedFolder = <SourceFolderShortcut> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID));
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number, name: string): Promise<SourceFolderShortcut> {
+		const unfinishedFolder = <SourceFolderShortcut> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID, name));
 		unfinishedFolder.pathToOtherSource = '';
 		return unfinishedFolder;
 	}

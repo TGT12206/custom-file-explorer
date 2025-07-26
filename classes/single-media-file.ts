@@ -49,8 +49,8 @@ export class SingleMediaFile extends RealFile {
 		return sourceFolder.vaultPath + '/' + this.id + ' Actual File';
 	}
 
-	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<SingleMediaFile> {
-		const newMediaFile = <SingleMediaFile> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID));
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number, name: string): Promise<SingleMediaFile> {
+		const newMediaFile = <SingleMediaFile> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID, name));
 		newMediaFile.extensionName = '';
 		return newMediaFile;
 	}

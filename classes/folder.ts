@@ -17,8 +17,8 @@ export class Folder extends CFEFile {
 	 * 
 	 * initializes the contained file ids array for the folder object
 	 */
-	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<Folder> {
-		const unfinishedFolder = <Folder> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID));
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number, name: string): Promise<Folder> {
+		const unfinishedFolder = <Folder> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID, name));
 		unfinishedFolder.containedFileIDs = [];
 		return unfinishedFolder;
 	}
@@ -54,9 +54,11 @@ export class Folder extends CFEFile {
 		exitButton.onclick = () => {
 			popUpContainer.remove();
 		}
-		popUpContainer.createEl('p', { text: 'Choose a File Type to create: ' } );
+		popUpContainer.createEl('p', { text: 'Choose a File Type to create:' } );
 		const fileTypeDropdown = popUpContainer.createEl('select');
-		popUpContainer.createEl('p', { text: 'Parent Folder ID: ' } );
+		popUpContainer.createEl('p', { text: 'File Name:' } );
+		const nameInput = popUpContainer.createEl('input', { type: 'text', value: 'Unnamed' } );
+		popUpContainer.createEl('p', { text: 'Parent Folder ID:' } );
 		const parentFolderIDInput = popUpContainer.createEl('input', { type: 'text', value: '' + this.id } );
 		for (let i = 0; i < CFEFileHandler.KnownFileTypes.length; i++) {
 			const option = fileTypeDropdown.createEl('option');
@@ -66,7 +68,7 @@ export class Folder extends CFEFile {
 		}
 		const submitButton = popUpContainer.createEl('button', { text: 'Create' } );
 		submitButton.onclick = async () => {
-			await CFEFileHandler.CreateNew(snv, fileTypeDropdown.value, parseInt(parentFolderIDInput.value));
+			await CFEFileHandler.CreateNew(snv, fileTypeDropdown.value, parseInt(parentFolderIDInput.value), nameInput.value);
 			exitButton.click();
 			const resettedFolder = await CFEFileHandler.LoadFile(snv, this.id);
 			await resettedFolder.Display(snv, mainDiv);
@@ -90,7 +92,7 @@ export class Folder extends CFEFile {
 			const parentFolderID = parseInt(parentFolderIDInput.value);
 			if (fileArray !== null) {
 				for (let i = 0; i < fileArray.length; i++) {
-					const cfeFile = await CFEFileHandler.CreateNew(snv, 'Single Media File', parentFolderID);
+					const cfeFile = await CFEFileHandler.CreateNew(snv, 'Single Media File', parentFolderID, fileArray[i].name);
 					const mediaFile = Object.assign(new SingleMediaFile(), cfeFile);
 					await mediaFile.SetFileTo(snv, fileArray[i]);
 					await mediaFile.Save(snv);

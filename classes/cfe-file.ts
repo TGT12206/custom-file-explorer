@@ -47,14 +47,14 @@ export class CFEFile {
 	 * 
 	 * sets the source, id, file type, file name, and parent folder id of the file object.
 	 */
-	static async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<CFEFile> {
+	static async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number, name: string): Promise<CFEFile> {
 		const sourceFolder = snv.sourceFolder;
 
 		// Set the values of the unfinished file
 		const unfinishedFile = new CFEFile();
 		unfinishedFile.id = sourceFolder.fileCount;
 		unfinishedFile.fileType = fileType;
-		unfinishedFile.fileName = '';
+		unfinishedFile.fileName = name;
 		unfinishedFile.parentFolderID = parentFolderID;
 		
 		// Update the file count

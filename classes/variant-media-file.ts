@@ -15,8 +15,8 @@ export class VariantMediaFile extends RealFile {
 		return await containedMedia.getSrc(snv);
 	}
 
-	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<VariantMediaFile> {
-		const newMediaFile = <VariantMediaFile> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID));
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number, name: string): Promise<VariantMediaFile> {
+		const newMediaFile = <VariantMediaFile> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID, name));
 		newMediaFile.variantIDs = [];
 		return newMediaFile;
 	}

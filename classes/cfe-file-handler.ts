@@ -23,30 +23,30 @@ export class CFEFileHandler {
 		'Conlang Dictionary'
 	]
 
-	static async CreateNew(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<CFEFile> {
+	static async CreateNew(snv: SourceAndVault, fileType: string, parentFolderID: number, name: string): Promise<CFEFile> {
 		let newFile: CFEFile;
 		switch(fileType) {
 			case 'Folder':
 			default:
-				newFile = await Folder.CreateNewFileForLayer(snv, fileType, parentFolderID);
+				newFile = await Folder.CreateNewFileForLayer(snv, fileType, parentFolderID, name);
 				break;
 			case 'Single Media File':
-				newFile = await SingleMediaFile.CreateNewFileForLayer(snv, fileType, parentFolderID);
+				newFile = await SingleMediaFile.CreateNewFileForLayer(snv, fileType, parentFolderID, name);
 				break;
 			case 'Variant Media File':
-				newFile = await VariantMediaFile.CreateNewFileForLayer(snv, fileType, parentFolderID);
+				newFile = await VariantMediaFile.CreateNewFileForLayer(snv, fileType, parentFolderID, name);
 				break;
 			case 'Playlist':
-				newFile = await Playlist.CreateNewFileForLayer(snv, fileType, parentFolderID);
+				newFile = await Playlist.CreateNewFileForLayer(snv, fileType, parentFolderID, name);
 				break;
 			case 'Story':
-				newFile = await Story.CreateNewFileForLayer(snv, fileType, parentFolderID);
+				newFile = await Story.CreateNewFileForLayer(snv, fileType, parentFolderID, name);
 				break;
 			case 'Source Folder Shortcut':
-				newFile = await SourceFolderShortcut.CreateNewFileForLayer(snv, fileType, parentFolderID);
+				newFile = await SourceFolderShortcut.CreateNewFileForLayer(snv, fileType, parentFolderID, name);
 				break;
 			case 'Conlang Dictionary':
-				newFile = await ConlangDictionary.CreateNewFileForLayer(snv, fileType, parentFolderID);
+				newFile = await ConlangDictionary.CreateNewFileForLayer(snv, fileType, parentFolderID, name);
 				break;
 		}
 		await newFile.Save(snv);

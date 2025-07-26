@@ -75,8 +75,8 @@ export class Story extends CFEFile {
 		}
 	}
 
-	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<Story> {
-		const newStoryFile = <Story> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID));
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number, name: string): Promise<Story> {
+		const newStoryFile = <Story> (await super.CreateNewFileForLayer(snv, fileType, parentFolderID, name));
 		newStoryFile.currentPageIndex = 0;
 		newStoryFile.pages = [];
 		newStoryFile.characters = [];
