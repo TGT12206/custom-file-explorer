@@ -1,6 +1,7 @@
 export class Hwayu {
 	static Display(div: HTMLDivElement, text = '', fontSize = 20, isVertical = true): HTMLElement {
-		const textElement = div.createEl('p', { text: text } );
+		const textElement = div.createDiv();
+		textElement.textContent = text;
 		textElement.style.fontFamily = isVertical ? 'HwayuReal' : 'HwayuHorizontal';
 		textElement.style.fontSize = fontSize + 'px';
 		if (isVertical) {

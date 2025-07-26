@@ -11,6 +11,7 @@ export class Story extends CFEFile {
 	private characters: Character[];
 	private language: string;
 	private doVertical: boolean;
+	private fontSize: number;
 
 	private static knownLanguages = [
 		'English',
@@ -27,12 +28,12 @@ export class Story extends CFEFile {
 		let input;
 		switch(this.language) {
 			case 'Hwayu':
-				return Hwayu.CreateTextInput(div, existingWord, 25, this.doVertical);
+				return Hwayu.CreateTextInput(div, existingWord, this.fontSize, this.doVertical);
 			case 'Photolang':
-				return PhotoLang.CreateTextInput(div, existingWord, 25);
+				return PhotoLang.CreateTextInput(div, existingWord, this.fontSize);
 			default:
 				input = div.createEl('input', { type: 'text', value: existingWord } );
-				input.style.fontSize = '25px';
+				input.style.fontSize = this.fontSize + 'px';
 				return input;
 		}
 	}
@@ -54,24 +55,27 @@ export class Story extends CFEFile {
 		let input;
 		switch(this.language) {
 			case 'Hwayu':
-				return Hwayu.CreateTextArea(div, existingWord, 25, this.doVertical);
+				return Hwayu.CreateTextArea(div, existingWord, this.fontSize, this.doVertical);
 			case 'Photolang':
-				return PhotoLang.CreateTextArea(div, existingWord, 25);
+				return PhotoLang.CreateTextArea(div, existingWord, this.fontSize);
 			default:
 				input = div.createEl('textarea', { text: existingWord } );
-				input.style.fontSize = '25px';
+				input.style.fontSize = this.fontSize + 'px';
 				return input;
 		}
 	}
 
-	private DisplayText(div: HTMLDivElement, fontSize = 25, existingWord = '') {
+	private DisplayText(div: HTMLDivElement, fontSize = this.fontSize, existingWord = '') {
 		switch(this.language) {
 			case 'Hwayu':
 				return Hwayu.Display(div, existingWord, fontSize, this.doVertical);
 			case 'Photolang':
 				return PhotoLang.Display(div, existingWord, fontSize, null, null, true);
-			default:
-				return div.createEl('p', { text: existingWord } );
+			default: {
+				const text = div.createEl('p', { text: existingWord } );
+				text.style.fontSize = fontSize + 'px';
+				return text;
+			}
 		}
 	}
 
@@ -102,6 +106,16 @@ export class Story extends CFEFile {
 			this.LoadCurrentPageEdit(snv, mainDiv);
 		}
 
+		mainDiv.createEl('p', { text: 'Font Size (in px):' } );
+		const fontSizeInput = mainDiv.createEl('input', { type: 'text' } );
+		fontSizeInput.value = this.fontSize ? '' + this.fontSize : '17.5';
+		fontSizeInput.onchange = async () => {
+			this.fontSize = parseFloat(fontSizeInput.value);
+			await this.Save(snv);
+			this.LoadStoryUI(snv, mainDiv);
+		}
+
+		mainDiv.createEl('p', { text: 'Language:' } );
 		const languageInput = mainDiv.createEl('select');
 		for (let i = 0; i < Story.knownLanguages.length; i++) {
 			languageInput.createEl('option', { text: Story.knownLanguages[i], value: Story.knownLanguages[i] } );
