@@ -1,4 +1,5 @@
-(For those who don't know what Obsidian is, or just want to see what the plugin looks like without downloading it, I'm going to work on a video and post it to youtube and link it here)
+For those who don't know what Obsidian is, or just want to see what the plugin looks like without downloading it, I made a quick demo and posted it to youtube:
+https://youtu.be/8XOno3ZlQ4I
 
 This obsidian plugin introduces a new file explorer system essentially separate from the obsidian vault.
 
