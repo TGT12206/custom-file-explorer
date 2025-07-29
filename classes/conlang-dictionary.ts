@@ -1,18 +1,19 @@
 import { CFEFile } from "./cfe-file";
-import { Hwayu } from "./conlangs/hwayu-text";
-import { PhotoLang } from "./conlangs/photolang-text";
+import { LanguageHandler } from "./conlangs/language-handler";
 import { SourceAndVault } from "./snv";
 
 export class ConlangDictionary extends CFEFile {
 
-	language: string;
+	termLanguage: string;
+	definitionLanguage: string;
 	words: [string, string][];
 	searchTerm: string;
 	searchInConlang: boolean;
 
 	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number, name: string): Promise<ConlangDictionary> {
 		const unfinishedDictionary = <ConlangDictionary> await super.CreateNewFileForLayer(snv, fileType, parentFolderID, name);
-		unfinishedDictionary.language = 'Hwayu';
+		unfinishedDictionary.termLanguage = 'English';
+		unfinishedDictionary.definitionLanguage = 'English';
 		unfinishedDictionary.words = [];
 		unfinishedDictionary.searchTerm = '';
 		unfinishedDictionary.searchInConlang = false;
@@ -22,16 +23,32 @@ export class ConlangDictionary extends CFEFile {
 	override async Display(snv: SourceAndVault, mainDiv: HTMLDivElement): Promise<void> {
 		await super.Display(snv, mainDiv);
 
-		const languageDropdown = mainDiv.createEl('select');
-		languageDropdown.createEl('option', { text: 'Hwayu', value: 'Hwayu' } );
-		languageDropdown.createEl('option', { text: 'Photolang', value: 'Photolang' } );
-		languageDropdown.value = this.language;
+		mainDiv.createEl('p', { text: 'Term Language' } );
+		const termLanguageDropdown = mainDiv.createEl('select');
+		for (let i = 0; i < LanguageHandler.knownLanguages.length; i++) {
+			const currentLang = LanguageHandler.knownLanguages[i];
+			termLanguageDropdown.createEl('option', { text: currentLang, value: currentLang } );
+		}
+		termLanguageDropdown.value = this.termLanguage;
+
+		mainDiv.createEl('p', { text: 'Definition Language' } );
+		const definitionLanguageDropdown = mainDiv.createEl('select');
+		for (let i = 0; i < LanguageHandler.knownLanguages.length; i++) {
+			const currentLang = LanguageHandler.knownLanguages[i];
+			definitionLanguageDropdown.createEl('option', { text: currentLang, value: currentLang } );
+		}
+		definitionLanguageDropdown.value = this.definitionLanguage;
 
 		const addWordDiv = mainDiv.createDiv('vbox');
 		await this.CreateNewWordEditor(snv, mainDiv, addWordDiv);
 
-		languageDropdown.onchange = async () => {
-			this.language = languageDropdown.value;
+		termLanguageDropdown.onchange = async () => {
+			this.termLanguage = termLanguageDropdown.value;
+			await this.Save(snv);
+			await this.Display(snv, mainDiv);
+		}
+		definitionLanguageDropdown.onchange = async () => {
+			this.definitionLanguage = definitionLanguageDropdown.value;
 			await this.Save(snv);
 			await this.Display(snv, mainDiv);
 		}
@@ -51,13 +68,13 @@ export class ConlangDictionary extends CFEFile {
 
 		const wordDiv = div.createDiv('hbox');
 		wordDiv.style.gap = '1%';
-		wordDiv.style.fontSize = '25px';
+		wordDiv.style.fontSize = '17.5px';
 		const conlangWord = this.words[index][0];
 		const definition = this.words[index][1];
-		const conlangWordDiv = this.DisplayConlangText(wordDiv, conlangWord);
+		const conlangWordDiv = LanguageHandler.Display(wordDiv, this.termLanguage, conlangWord, 17.5);
 		conlangWordDiv.classList.add('cfe-pointer-hover');
-		wordDiv.createEl('p', { text: ':' } );
-		wordDiv.createEl('p', { text: definition } );
+		wordDiv.createEl('div', { text: ':' } );
+		wordDiv.createEl('div', { text: definition } );
 
 		conlangWordDiv.onclick = async () => {
 			try {
@@ -86,15 +103,13 @@ export class ConlangDictionary extends CFEFile {
 		}
 
 		const wordDiv = div.createDiv('vbox');
-		wordDiv.style.fontSize = '25px';
-		wordDiv.createEl('p', { text: 'Word in ' + this.language } );
+		wordDiv.createEl('p', { text: 'Word in ' + this.termLanguage } );
 		const conlangWord = this.words[index][0];
 		const definition = this.words[index][1];
-		const newWordInput = this.DisplayConlangEditor(wordDiv, conlangWord);
+		const newWordInput = LanguageHandler.CreateOneLineEditor(wordDiv, this.termLanguage, conlangWord, 17.5, false);
 
 		wordDiv.createEl('p', { text: 'Definition' } );
-		const definitionInput = wordDiv.createEl('input', { type: 'text', value: definition } );
-		definitionInput.style.fontSize = '25px';
+		const definitionInput = LanguageHandler.CreateOneLineEditor(wordDiv, this.definitionLanguage, definition, 17.5, false);
 
 		const onSubmit = async () => {
 			this.words[index] = [newWordInput.value, definitionInput.value];
@@ -112,11 +127,11 @@ export class ConlangDictionary extends CFEFile {
 
 	private CreateNewWordEditor(snv: SourceAndVault, mainDiv: HTMLDivElement, div: HTMLDivElement) {
 		div.createEl('p', { text: 'Add New Word:' } );
-		div.createEl('p', { text: 'Word in ' + this.language } );
-		const newWordInput = this.DisplayConlangEditor(div);
+		div.createEl('p', { text: 'Word in ' + this.termLanguage } );
+		const newWordInput = LanguageHandler.CreateOneLineEditor(div, this.termLanguage, undefined, 17.5, false);
 
 		div.createEl('p', { text: 'Definition' } );
-		const definitionInput = div.createEl('input', { type: 'text', value: '' } );
+		const definitionInput = LanguageHandler.CreateOneLineEditor(div, this.definitionLanguage, undefined, 17.5, false);
 		const submitButton = div.createEl('button', { text: 'submit' } );
 
 		const onSubmit = async () => {
@@ -134,39 +149,19 @@ export class ConlangDictionary extends CFEFile {
 		}
 	}
 
-	private DisplayConlangEditor(div: HTMLDivElement, existingWord = '') {
-		switch(this.language) {
-			case 'Hwayu':
-			default:
-				return Hwayu.CreateTextInput(div, existingWord, 25, false);
-			case 'Photolang':
-				return PhotoLang.CreateTextInput(div, existingWord, 25);
-		}
-	}
-
-	private DisplayConlangText(div: HTMLDivElement, existingWord = '') {
-		switch(this.language) {
-			case 'Hwayu':
-			default:
-				return Hwayu.Display(div, existingWord, 25, false);
-			case 'Photolang':
-				return PhotoLang.Display(div, existingWord, 25, null, null, true);
-		}
-	}
-
 	private async DisplayList(snv: SourceAndVault, div: HTMLDivElement) {
-		div.createEl('p', { text: 'Search in ' + this.language + '?' } );
+		div.createEl('p', { text: 'Search in ' + this.termLanguage + '?' } );
 		
 		const checkbox = div.createEl('input', { type: 'checkbox' } );
 		checkbox.checked = this.searchInConlang;
 
 		div.createEl('p', { text: 'Search term' } );
 		
-		const conlangSearch = this.DisplayConlangEditor(div, this.searchTerm);
-		const englishSearch = div.createEl('input', { type: 'text', value: this.searchTerm } );
+		const conlangSearch = LanguageHandler.CreateOneLineEditor(div, this.termLanguage, this.searchTerm, 17.5, false);
+		const definitionSearch = LanguageHandler.CreateOneLineEditor(div, this.definitionLanguage, this.searchTerm, 17.5, false);
 		
-		let prevElement = checkbox.checked ? englishSearch : conlangSearch;
-		let currentElement = checkbox.checked ? conlangSearch : englishSearch;
+		let prevElement = checkbox.checked ? definitionSearch : conlangSearch;
+		let currentElement = checkbox.checked ? conlangSearch : definitionSearch;
 
 		prevElement.style.width = '100%';
 		currentElement.style.width = '100%';
@@ -194,13 +189,13 @@ export class ConlangDictionary extends CFEFile {
 		refreshResults();
 
 		conlangSearch.oninput = refreshResults;
-		englishSearch.oninput = refreshResults;
+		definitionSearch.oninput = refreshResults;
 
 		checkbox.onchange = () => {
 			resultsDiv.empty();
 
-			prevElement = checkbox.checked ? englishSearch : conlangSearch;
-			currentElement = checkbox.checked ? conlangSearch : englishSearch;
+			prevElement = checkbox.checked ? definitionSearch : conlangSearch;
+			currentElement = checkbox.checked ? conlangSearch : definitionSearch;
 			this.searchTerm = prevElement.value;
 
 			prevElement.style.display = 'none';
