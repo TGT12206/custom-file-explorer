@@ -19,7 +19,7 @@ export class Story extends CFEFile {
 		'Photolang'
 	]
 
-	private MakeVertical(el: HTMLElement) {
+	private MakeVertical(el: HTMLElement | PhotoLangInput) {
 		el.style.writingMode = 'vertical-lr';
 		el.style.textOrientation = 'upright';
 	}
@@ -40,12 +40,12 @@ export class Story extends CFEFile {
 
 	private DisplayLineEdit(div: HTMLDivElement, line: DialogueLine) {
 		const input = this.CreateTextArea(div, line.content);
-		if (!(input instanceof PhotoLangInput)) {
-			const speaker = this.characters[line.speakerIndex];
+		const speaker = this.characters[line.speakerIndex];
+		if (this.language !== 'Photolang') {
 			input.style.backgroundColor = speaker.backgroundColor;
 			input.style.color = speaker.color;
 		}
-		if (this.doVertical && !(input instanceof PhotoLangInput)) {
+		if (this.doVertical) {
 			this.MakeVertical(input);
 		}
 		return input;
@@ -149,7 +149,7 @@ export class Story extends CFEFile {
 
 			charDiv.createEl('p', { text: 'Name: ' } );
 			const nameInput = this.CreateTextInput(charDiv, this.characters[currentIndex].name);
-			if (!(nameInput instanceof PhotoLangInput)) {
+			if (this.language !== 'Photolang') {
 				nameInput.style.backgroundColor = this.characters[currentIndex].backgroundColor;
 				nameInput.style.color = this.characters[currentIndex].color;
 			}
@@ -158,12 +158,10 @@ export class Story extends CFEFile {
 				await this.Save(snv);
 				this.LoadStoryUI(snv, div);
 			}
-			if (!(nameInput instanceof PhotoLangInput)) {
-				if (this.doVertical) {
+			if (this.doVertical) {
 				nameInput.style.height = 'fit-content';
-				} else {
-					nameInput.style.width = 'fit-content';
-				}
+			} else {
+				nameInput.style.width = 'fit-content';
 			}
 			if (this.language !== 'Photolang') {
 				this.LoadCharacterColorSelectionUI(snv, div, charEditorDiv, currentIndex);
@@ -181,25 +179,32 @@ export class Story extends CFEFile {
 	private LoadCharacterColorSelectionUI(snv: SourceAndVault, div: HTMLDivElement, charEditorDiv: HTMLDivElement, currentIndex: number) {
 		const colorDiv = charEditorDiv.createDiv();
 		colorDiv.className = this.doVertical ? 'vbox' : 'hbox';
+
 		colorDiv.createEl('p', { text: 'Text Color:' } );
 		const colorInput = colorDiv.createEl('input', { type: 'color', value: this.characters[currentIndex].color } );
-		colorDiv.createEl('p', { text: 'Background Color:' } );
-		const backgroundInput = colorDiv.createEl('input', { type: 'color', value: this.characters[currentIndex].backgroundColor } );
 		const swapButton = colorDiv.createEl('button', { text: 'Swap' } );
 		colorInput.onchange = async () => {
 			this.characters[currentIndex].color = colorInput.value;
 			await this.Save(snv);
+			charEditorDiv.remove();
+			this.LoadCharacterEditorUI(snv, div);
 		}
+		colorDiv.createEl('p', { text: 'Background Color:' } );
+		const backgroundInput = colorDiv.createEl('input', { type: 'color', value: this.characters[currentIndex].backgroundColor } );
 		backgroundInput.onchange = async () => {
 			this.characters[currentIndex].backgroundColor = backgroundInput.value;
 			await this.Save(snv);
-		}
-		swapButton.onclick = async () => {
-			this.characters[currentIndex].backgroundColor = colorInput.value;
-			this.characters[currentIndex].color = backgroundInput.value;
-			await this.Save(snv);
 			charEditorDiv.remove();
 			this.LoadCharacterEditorUI(snv, div);
+		}
+		swapButton.onclick = async () => {
+		this.characters[currentIndex].backgroundColor = colorInput.value;
+		if (this.language !== 'Photolang') {
+			this.characters[currentIndex].color = backgroundInput.value;
+		}
+		await this.Save(snv);
+		charEditorDiv.remove();
+		this.LoadCharacterEditorUI(snv, div);
 		}
 	}
 
@@ -465,13 +470,11 @@ export class Story extends CFEFile {
 			}
 
 			const lineInput = this.DisplayLineEdit(lineDiv, currentLine);
-			if (!(lineInput instanceof PhotoLangInput)) {
-				if (this.doVertical) {
-					lineInput.style.height = '100%';
-					this.MakeVertical(lineInput);
-				} else {
-					lineInput.style.width = '100%';
-				}
+			if (this.doVertical) {
+				lineInput.style.height = '100%';
+				this.MakeVertical(lineInput);
+			} else {
+				lineInput.style.width = '100%';
 			}
 
 			lineInput.onchange = async () => {
@@ -610,8 +613,10 @@ export class Story extends CFEFile {
 			lineDiv.className = this.doVertical ? 'vbox' : 'hbox';
 
 			const nameEl = this.DisplayText(nameDiv, 25, speaker.name);
-			nameEl.style.backgroundColor = speaker.backgroundColor;
-			nameEl.style.color = speaker.color;
+			if (this.language !== 'Photolang') {
+				nameEl.style.backgroundColor = speaker.backgroundColor;
+				nameEl.style.color = speaker.color;
+			}
 			
 			if (this.language === 'Photolang') {
 				const photoLine = new PhotoLine(currentLine.content);
@@ -671,7 +676,7 @@ class Character {
 	name: string;
 	color: string;
 	backgroundColor: string;
-	constructor(name = '', color = 'white', backgroundColor = 'white') {
+	constructor(name = '', color = 'white', backgroundColor = 'black') {
 		this.name = name;
 		this.color = color;
 		this.backgroundColor = backgroundColor;

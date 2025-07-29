@@ -24,18 +24,36 @@ export class PhotoLang {
 
 export class PhotoLangInput {
 	line: PhotoLine;
+	mainDiv: HTMLDivElement;
 	get value() {
 		return this.line.toText();
 	}
+
+	set value(newVal) {
+		this.line = new PhotoLine(newVal);
+	}
+
+	get style() {
+		return this.mainDiv.style;
+	}
+
 	onchange: () => Promise<null> | null;
+	oninput: () => Promise<null> | null;
 
 	constructor(div: HTMLDivElement, value: string, fontSize = 17.5, moveSpeeds: number[], durations: number[]) {
 		const hbox = div.createDiv('hbox');
+		this.mainDiv = hbox;
 		this.line = new PhotoLine(value);
+		this.Display(fontSize, moveSpeeds, durations);
+	}
+	private Display(fontSize = 17.5, moveSpeeds: number[], durations: number[]) {
+		this.mainDiv.empty();
 		for (let i = 0; i < this.line.words.length; i++) {
 			const index = i;
 			const word = this.line.words[i];
-			const wordDiv = hbox.createDiv('vbox');
+			const wordDiv = this.mainDiv.createDiv('vbox');
+			const deleteButton = wordDiv.createEl('button', { text: 'delete' } );
+			deleteButton.className = 'cfe-remove-button';
 			wordDiv.style.width = (fontSize * 3.25) + 'px';
 			const speakDiv = wordDiv.createDiv();
 			speakDiv.style.fontSize = fontSize + 'px';
@@ -47,10 +65,23 @@ export class PhotoLangInput {
 			const input = wordDiv.createEl('input', { type: 'text', value: word.toText() } );
 			input.spellcheck = false;
 			input.style.fontSize = (fontSize * 0.5) + 'px';
+			deleteButton.onclick = () => {
+				this.line.words.splice(index, 1);
+				this.Display(fontSize, moveSpeeds, durations);
+			}
 			input.onchange = async () => {
 				this.line.words[index] = new PhotoWord(input.value);
 				await this.onchange();
 			}
+			input.oninput = async () => {
+				this.line.words[index] = new PhotoWord(input.value);
+				await this.oninput();
+			}
+		}
+		const addButton = this.mainDiv.createEl('button', { text: '+' } );
+		addButton.onclick = () => {
+			this.line.words.push(new PhotoWord(''));
+			this.Display(fontSize, moveSpeeds, durations);
 		}
 	}
 }

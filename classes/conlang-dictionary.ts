@@ -167,11 +167,12 @@ export class ConlangDictionary extends CFEFile {
 		
 		let prevElement = checkbox.checked ? englishSearch : conlangSearch;
 		let currentElement = checkbox.checked ? conlangSearch : englishSearch;
+
 		prevElement.style.width = '100%';
 		currentElement.style.width = '100%';
 
 		this.searchTerm = prevElement.value;
-
+		
 		prevElement.style.display = 'none';
 		currentElement.value = this.searchTerm;
 		currentElement.style.display = '';
@@ -193,7 +194,6 @@ export class ConlangDictionary extends CFEFile {
 		refreshResults();
 
 		conlangSearch.oninput = refreshResults;
-
 		englishSearch.oninput = refreshResults;
 
 		checkbox.onchange = () => {
