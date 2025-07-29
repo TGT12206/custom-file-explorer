@@ -79,9 +79,7 @@ button.cfe-remove-button {
 }
 .cfe-photoglyph {
 	font-family: Photolang;
+	border-style: solid;
 	border-radius: 1px;
-	border-color: var(--popup-background-color);
-}
-.cfe-photoglyph:hover {
-	background-color: var(--popup-background-color);
+	border-color: white;
 }

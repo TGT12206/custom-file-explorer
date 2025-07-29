@@ -2,7 +2,7 @@ import { CFEFile } from "./cfe-file";
 import { CFEFileHandler } from "./cfe-file-handler";
 import { SingleMediaFile } from "./single-media-file";
 import { SourceAndVault } from "./snv";
-import { PhotoLang, PhotoLine } from "./conlangs/photolang-text";
+import { PhotoLang, PhotoLangInput, PhotoLine } from "./conlangs/photolang-text";
 import { Hwayu } from "./conlangs/hwayu-text";
 
 export class Story extends CFEFile {
@@ -40,12 +40,12 @@ export class Story extends CFEFile {
 
 	private DisplayLineEdit(div: HTMLDivElement, line: DialogueLine) {
 		const input = this.CreateTextArea(div, line.content);
-		if (this.language !== 'Photolang') {
+		if (!(input instanceof PhotoLangInput)) {
 			const speaker = this.characters[line.speakerIndex];
 			input.style.backgroundColor = speaker.backgroundColor;
 			input.style.color = speaker.color;
 		}
-		if (this.doVertical) {
+		if (this.doVertical && !(input instanceof PhotoLangInput)) {
 			this.MakeVertical(input);
 		}
 		return input;
@@ -57,7 +57,7 @@ export class Story extends CFEFile {
 			case 'Hwayu':
 				return Hwayu.CreateTextArea(div, existingWord, this.fontSize, this.doVertical);
 			case 'Photolang':
-				return PhotoLang.CreateTextArea(div, existingWord, this.fontSize);
+				return PhotoLang.CreateTextInput(div, existingWord, this.fontSize);
 			default:
 				input = div.createEl('textarea', { text: existingWord } );
 				input.style.fontSize = this.fontSize + 'px';
@@ -149,7 +149,7 @@ export class Story extends CFEFile {
 
 			charDiv.createEl('p', { text: 'Name: ' } );
 			const nameInput = this.CreateTextInput(charDiv, this.characters[currentIndex].name);
-			if (this.language !== 'Photolang') {
+			if (!(nameInput instanceof PhotoLangInput)) {
 				nameInput.style.backgroundColor = this.characters[currentIndex].backgroundColor;
 				nameInput.style.color = this.characters[currentIndex].color;
 			}
@@ -158,15 +158,15 @@ export class Story extends CFEFile {
 				await this.Save(snv);
 				this.LoadStoryUI(snv, div);
 			}
-			if (this.doVertical) {
+			if (!(nameInput instanceof PhotoLangInput)) {
+				if (this.doVertical) {
 				nameInput.style.height = 'fit-content';
-			} else {
-				nameInput.style.width = 'fit-content';
+				} else {
+					nameInput.style.width = 'fit-content';
+				}
 			}
 			if (this.language !== 'Photolang') {
 				this.LoadCharacterColorSelectionUI(snv, div, charEditorDiv, currentIndex);
-			} else {
-				this.DisplayText(charDiv, 25, this.characters[currentIndex].name);
 			}
 		}
 		const addCharButton = charEditorDiv.createEl('button', { text: 'Add Character' } );
@@ -271,6 +271,12 @@ export class Story extends CFEFile {
 		const panelDiv = mainDiv.createDiv('hbox');
 		const outerMediaDiv = panelDiv.createDiv('vbox');
 		const linesDiv = panelDiv.createDiv('vbox');
+
+		const speakDiv = outerMediaDiv.createDiv();
+		speakDiv.style.position = 'absolute';
+		speakDiv.style.top = '0px';
+		speakDiv.style.left = '0px';
+
 		const mediaWidthInput = outerMediaDiv.createEl('input', { type: 'text' } );
 		mediaWidthInput.onchange = async () => {
 			outerMediaDiv.style.width = mediaWidthInput.value + '%';
@@ -327,7 +333,7 @@ export class Story extends CFEFile {
 			this.pages.push(defaultPage);
 			await this.Save(snv);
 		}
-		await this.LoadDialogueLinesEdit(snv, linesDiv);
+		await this.LoadDialogueLinesEdit(snv, linesDiv, speakDiv);
 		mediaFileIDInput.onchange = async () => {
 			const currentPage = this.pages[this.currentPageIndex];
 			currentPage.mediaFileID = parseInt(mediaFileIDInput.value);
@@ -345,6 +351,11 @@ export class Story extends CFEFile {
 		const panelDiv = mainDiv.createDiv('hbox');
 		const outerMediaDiv = panelDiv.createDiv('vbox');
 		const linesDiv = panelDiv.createDiv('vbox');
+		
+		const speakDiv = outerMediaDiv.createDiv();
+		speakDiv.style.position = 'absolute';
+		speakDiv.style.top = '0px';
+		speakDiv.style.left = '0px';
 
 		const mediaDiv = outerMediaDiv.createDiv('vbox');
 		outerMediaDiv.style.width = '50%';
@@ -365,16 +376,11 @@ export class Story extends CFEFile {
 			outerMediaDiv.style.width = width + '%';
 			linesDiv.style.width = 100 - width + '%';
 		}
-		await this.LoadDialogueLinesDisplayOnly(linesDiv);
+		await this.LoadDialogueLinesDisplayOnly(linesDiv, speakDiv);
 	}
 
-	private async LoadDialogueLinesEdit(snv: SourceAndVault, linesDiv: HTMLDivElement) {
+	private async LoadDialogueLinesEdit(snv: SourceAndVault, linesDiv: HTMLDivElement, speakDiv: HTMLDivElement) {
 		linesDiv.empty();
-
-		const speakDiv = linesDiv.createDiv();
-		speakDiv.style.position = 'absolute';
-		speakDiv.style.top = '0px';
-		speakDiv.style.left = '0px';
 
 		const existingLinesDiv = linesDiv.createDiv();
 		existingLinesDiv.className = this.doVertical ? 'hbox' : 'vbox';
@@ -396,17 +402,12 @@ export class Story extends CFEFile {
 			deleteButton.onclick = async () => {
 				this.pages[this.currentPageIndex].lines.splice(currentIndex, 1);
 				await this.Save(snv);
-				await this.LoadDialogueLinesEdit(snv, linesDiv);
+				await this.LoadDialogueLinesEdit(snv, linesDiv, speakDiv);
 			}
 			if (this.doVertical) {
 				this.MakeVertical(deleteButton);
 			}
-
-			const indexTextEl = this.DisplayText(lineDiv, 25, '' + currentIndex);
-			if (this.doVertical) {
-				this.MakeVertical(indexTextEl);
-			}
-
+			
 			if (this.language === 'Photolang') {
 				const playButton = lineDiv.createEl('button', { text: '▷' } );
 				playButton.onclick = () => {
@@ -449,7 +450,7 @@ export class Story extends CFEFile {
 					currentOption.onclick = async () => {
 						this.pages[this.currentPageIndex].lines[currentIndex].speakerIndex = currentCharIndex;
 						await this.Save(snv);
-						this.LoadDialogueLinesEdit(snv, linesDiv);
+						this.LoadDialogueLinesEdit(snv, linesDiv, speakDiv);
 					}
 				}
 			}
@@ -464,11 +465,13 @@ export class Story extends CFEFile {
 			}
 
 			const lineInput = this.DisplayLineEdit(lineDiv, currentLine);
-			if (this.doVertical) {
-				lineInput.style.height = '100%';
-				this.MakeVertical(lineInput);
-			} else {
-				lineInput.style.width = '100%';
+			if (!(lineInput instanceof PhotoLangInput)) {
+				if (this.doVertical) {
+					lineInput.style.height = '100%';
+					this.MakeVertical(lineInput);
+				} else {
+					lineInput.style.width = '100%';
+				}
 			}
 
 			lineInput.onchange = async () => {
@@ -480,7 +483,7 @@ export class Story extends CFEFile {
 		addButton.onclick = async () => {
 			this.pages[this.currentPageIndex].lines.push(new DialogueLine(0));
 			await this.Save(snv);
-			await this.LoadDialogueLinesEdit(snv, linesDiv);
+			await this.LoadDialogueLinesEdit(snv, linesDiv, speakDiv);
 		}
 	}
 
@@ -574,13 +577,8 @@ export class Story extends CFEFile {
 	// 	}
 	// }
 
-	private async LoadDialogueLinesDisplayOnly(linesDiv: HTMLDivElement) {
+	private async LoadDialogueLinesDisplayOnly(linesDiv: HTMLDivElement, speakDiv: HTMLDivElement) {
 		linesDiv.empty();
-
-		const speakDiv = linesDiv.createDiv();
-		speakDiv.style.position = 'absolute';
-		speakDiv.style.top = '0px';
-		speakDiv.style.left = '0px';
 
 		const existingLinesDiv = linesDiv.createDiv('vbox');
 		existingLinesDiv.className = this.doVertical ? 'hbox' : 'vbox' ;
@@ -617,7 +615,7 @@ export class Story extends CFEFile {
 			
 			if (this.language === 'Photolang') {
 				const photoLine = new PhotoLine(currentLine.content);
-				photoLine.DisplayStatic(lineDiv, 25);
+				photoLine.DisplayStatic(lineDiv, 25, null, null);
 			} else {
 				const lineEl = this.DisplayText(lineDiv, 25, currentLine.content);
 				lineEl.style.backgroundColor = speaker.backgroundColor;
