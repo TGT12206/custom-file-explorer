@@ -10,8 +10,8 @@ export class ConlangDictionary extends CFEFile {
 	searchTerm: string;
 	searchInConlang: boolean;
 
-	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number): Promise<ConlangDictionary> {
-		const unfinishedDictionary = <ConlangDictionary> await super.CreateNewFileForLayer(snv, fileType, parentFolderID);
+	static override async CreateNewFileForLayer(snv: SourceAndVault, fileType: string, parentFolderID: number, name: string): Promise<ConlangDictionary> {
+		const unfinishedDictionary = <ConlangDictionary> await super.CreateNewFileForLayer(snv, fileType, parentFolderID, name);
 		unfinishedDictionary.language = 'Hwayu';
 		unfinishedDictionary.words = [];
 		unfinishedDictionary.searchTerm = '';
