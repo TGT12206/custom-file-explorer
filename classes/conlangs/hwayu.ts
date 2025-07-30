@@ -1,17 +1,17 @@
 import { ConlangElement, ConlangMultiLineEditor, ConlangOneLineEditor, Language } from "./language";
 
 export class Hwayu extends Language {
-	static CreateOneLineEditor(div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): HwayuOneLineEditor {
+	static CreateOneLineEditor(cleanDiv: HTMLDivElement, div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): HwayuOneLineEditor {
 		const textElement = new HwayuOneLineEditor(div, value, fontSize, isVertical);
 		return textElement;
 	}
 
-	static CreateMultiLineEditor(div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): HwayuMultiLineEditor {
+	static CreateMultiLineEditor(cleanDiv: HTMLDivElement, div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): HwayuMultiLineEditor {
 		const textElement = new HwayuMultiLineEditor(div, value, fontSize, isVertical);
 		return textElement;
 	}
 
-	static Display(div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): HwayuElement {
+	static Display(cleanDiv: HTMLDivElement, div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): HwayuElement {
 		const textElement = new HwayuElement(div, value, fontSize, isVertical);
 		return textElement;
 	}

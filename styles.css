@@ -36,11 +36,6 @@ div.cfe-dictionary-word {
 	border-radius: 5px;
 	border-color: white;
 }
-.cfe-photolang-grid {
-	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	grid-template-rows: repeat(3, 1fr);
-}
 .cfe-thumbnail:hover {
 	cursor: pointer;
 	background-color: var(--thumbnail-background-color);
@@ -48,9 +43,10 @@ div.cfe-dictionary-word {
 .cfe-popup {
 	position: absolute;
 	width: 90%;
-	height: fit-content;
-	top: 15%;
-	left: 5%;
+	height: 90%;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
 	padding: 1vh;
 	background-color: var(--popup-background-color);
 	z-index: 2;
@@ -76,10 +72,4 @@ button:hover {
 }
 button.cfe-remove-button {
 	background-color: var(--exit-button-color);
-}
-.cfe-photoglyph {
-	font-family: Photolang;
-	border-style: solid;
-	border-radius: 1px;
-	border-color: white;
 }

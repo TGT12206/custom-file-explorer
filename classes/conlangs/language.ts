@@ -1,17 +1,17 @@
 export class Language {
-	static CreateOneLineEditor(div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): ConlangOneLineEditor {
+	static CreateOneLineEditor(cleanDiv: HTMLDivElement, div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): ConlangOneLineEditor {
 		throw Error('Do not call this method on the Language class itself');
 	}
 
-	static CreateMultiLineEditor(div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): ConlangMultiLineEditor {
+	static CreateMultiLineEditor(cleanDiv: HTMLDivElement, div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): ConlangMultiLineEditor {
 		throw Error('Do not call this method on the Language class itself');
 	}
 
-	static Display(div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): ConlangElement {
+	static Display(cleanDiv: HTMLDivElement, div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): ConlangElement {
 		throw Error('Do not call this method on the Language class itself');
 	}
 
-	static SpeakOrAnimate(div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): ConlangElement {
+	static SpeakOrAnimate(cleanDiv: HTMLDivElement, div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): ConlangElement {
 		throw Error('Do not call this method on the Language class itself');
 	}
 
@@ -34,15 +34,25 @@ export abstract class ConlangElement {
 		this.realFontSize = newValue;
 		this.style.fontSize = newValue + 'px';
 	}
-	onclick: () => Promise<void> | void;
+	onclick: () => Promise<void> | void = () => {
+		return;
+	}
 }
 
 export abstract class ConlangOneLineEditor extends ConlangElement {
-	oninput: () => Promise<void> | void;
-	onchange: () => Promise<void> | void;
+	oninput: () => Promise<void> | void = () => {
+		return;
+	}
+	onchange: () => Promise<void> | void = () => {
+		return;
+	}
 }
 
 export abstract class ConlangMultiLineEditor extends ConlangElement {
-	oninput: () => Promise<void> | void;
-	onchange: () => Promise<void> | void;
+	oninput: () => Promise<void> | void = () => {
+		return;
+	}
+	onchange: () => Promise<void> | void = () => {
+		return;
+	}
 }

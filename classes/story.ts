@@ -17,10 +17,10 @@ export class Story extends CFEFile {
 		el.style.textOrientation = 'upright';
 	}
 
-	private DisplayLineEdit(div: HTMLDivElement, line: DialogueLine) {
-		const input = LanguageHandler.CreateMultiLineEditor(div, this.language, line.content);
+	private DisplayLineEdit(mainDiv: HTMLDivElement, div: HTMLDivElement, line: DialogueLine) {
+		const input = LanguageHandler.CreateMultiLineEditor(mainDiv, div, this.language, line.content);
 		const speaker = this.characters[line.speakerIndex];
-		if (this.language !== 'Photolang') {
+		if (this.language !== 'Color Lang') {
 			input.style.backgroundColor = speaker.backgroundColor;
 			input.style.color = speaker.color;
 		}
@@ -97,9 +97,11 @@ export class Story extends CFEFile {
 			charDiv.className = this.doVertical ? 'vbox' : 'hbox';
 
 			charDiv.createEl('p', { text: 'Name: ' } );
-			const nameInput = LanguageHandler.CreateOneLineEditor(charDiv, this.language, this.characters[currentIndex].name, this.fontSize, this.doVertical);
-			nameInput.style.backgroundColor = this.characters[currentIndex].backgroundColor;
-			nameInput.style.color = this.characters[currentIndex].color;
+			const nameInput = LanguageHandler.CreateOneLineEditor(div, charDiv, this.language, this.characters[currentIndex].name, this.fontSize, this.doVertical);
+			if (this.language !== 'Color Lang') {
+				nameInput.style.backgroundColor = this.characters[currentIndex].backgroundColor;
+				nameInput.style.color = this.characters[currentIndex].color;
+			}
 			nameInput.onchange = async () => {
 				this.characters[currentIndex].name = nameInput.value;
 				await this.Save(snv);
@@ -110,7 +112,9 @@ export class Story extends CFEFile {
 			} else {
 				nameInput.style.width = 'fit-content';
 			}
-			this.LoadCharacterColorSelectionUI(snv, div, charEditorDiv, currentIndex);
+			if (this.language !== 'Color Lang') {
+				this.LoadCharacterColorSelectionUI(snv, div, charEditorDiv, currentIndex);
+			}
 		}
 		const addCharButton = charEditorDiv.createEl('button', { text: 'Add Character' } );
 		addCharButton.onclick = async () => {
@@ -194,7 +198,7 @@ export class Story extends CFEFile {
 			if (this.currentPageIndex !== 0) {
 				this.currentPageIndex--;
 			}
-			await this.LoadCurrentPageEdit(snv,mainDiv);
+			await this.LoadCurrentPageEdit(snv, mainDiv);
 		}
 		addButton.onclick = async () => {
 			const defaultPage = new Page();
@@ -205,7 +209,7 @@ export class Story extends CFEFile {
 			this.pages.splice(this.currentPageIndex + 1, 0, defaultPage);
 			await this.Save(snv);
 			this.currentPageIndex++;
-			await this.LoadCurrentPageEdit(snv,mainDiv);
+			await this.LoadCurrentPageEdit(snv, mainDiv);
 		}
 	}
 
@@ -218,6 +222,7 @@ export class Story extends CFEFile {
 		
 		const panelDiv = mainDiv.createDiv('hbox');
 		const outerMediaDiv = panelDiv.createDiv('vbox');
+		outerMediaDiv.style.position = 'relative';
 		const linesDiv = panelDiv.createDiv('vbox');
 
 		const speakDiv = outerMediaDiv.createDiv();
@@ -281,7 +286,7 @@ export class Story extends CFEFile {
 			this.pages.push(defaultPage);
 			await this.Save(snv);
 		}
-		await this.LoadDialogueLinesEdit(snv, linesDiv, speakDiv);
+		await this.LoadDialogueLinesEdit(snv, linesDiv, speakDiv, mainDiv);
 		mediaFileIDInput.onchange = async () => {
 			const currentPage = this.pages[this.currentPageIndex];
 			currentPage.mediaFileID = parseInt(mediaFileIDInput.value);
@@ -298,6 +303,7 @@ export class Story extends CFEFile {
 		
 		const panelDiv = mainDiv.createDiv('hbox');
 		const outerMediaDiv = panelDiv.createDiv('vbox');
+		outerMediaDiv.style.position = 'relative';
 		const linesDiv = panelDiv.createDiv('vbox');
 		
 		const speakDiv = outerMediaDiv.createDiv();
@@ -324,10 +330,10 @@ export class Story extends CFEFile {
 			outerMediaDiv.style.width = width + '%';
 			linesDiv.style.width = 100 - width + '%';
 		}
-		await this.LoadDialogueLinesDisplayOnly(linesDiv, speakDiv);
+		await this.LoadDialogueLinesDisplayOnly(linesDiv, speakDiv, mainDiv);
 	}
 
-	private async LoadDialogueLinesEdit(snv: SourceAndVault, linesDiv: HTMLDivElement, speakDiv: HTMLDivElement) {
+	private async LoadDialogueLinesEdit(snv: SourceAndVault, linesDiv: HTMLDivElement, speakDiv: HTMLDivElement, cleanDiv: HTMLDivElement) {
 		linesDiv.empty();
 
 		const existingLinesDiv = linesDiv.createDiv();
@@ -350,10 +356,19 @@ export class Story extends CFEFile {
 			deleteButton.onclick = async () => {
 				this.pages[this.currentPageIndex].lines.splice(currentIndex, 1);
 				await this.Save(snv);
-				await this.LoadDialogueLinesEdit(snv, linesDiv, speakDiv);
+				await this.LoadDialogueLinesEdit(snv, linesDiv, speakDiv, cleanDiv);
 			}
 			if (this.doVertical) {
 				this.MakeVertical(deleteButton);
+			}
+
+			const playButton = lineDiv.createEl('button', { text: '▷' } );
+			playButton.onclick = () => {
+				try {
+					LanguageHandler.SpeakOrAnimate(cleanDiv, speakDiv, this.language, currentLine.content, 150, this.doVertical);
+				} catch (e) {
+					e.console.error();
+				}
 			}
 			
 			const charDropdownButton = lineDiv.createDiv();
@@ -374,23 +389,27 @@ export class Story extends CFEFile {
 					if (this.doVertical) {
 						this.MakeVertical(currentOption);
 					}
-					currentOption.style.backgroundColor = currentChar.backgroundColor;
-					currentOption.style.color = currentChar.color;
+					if (this.language !== 'Color Lang') {
+						currentOption.style.backgroundColor = currentChar.backgroundColor;
+						currentOption.style.color = currentChar.color;
+					}
 					currentOption.style.zIndex = '2';
-					LanguageHandler.Display(currentOption, this.language, currentChar.name, this.fontSize, this.doVertical);
+					LanguageHandler.Display(speakDiv, currentOption, this.language, currentChar.name, this.fontSize, this.doVertical);
 					currentOption.onclick = async () => {
 						this.pages[this.currentPageIndex].lines[currentIndex].speakerIndex = currentCharIndex;
 						await this.Save(snv);
-						this.LoadDialogueLinesEdit(snv, linesDiv, speakDiv);
+						this.LoadDialogueLinesEdit(snv, linesDiv, speakDiv, cleanDiv);
 					}
 				}
 			}
 
-			const nameEl = LanguageHandler.Display(charDropdownDiv, this.language, this.characters[currentLine.speakerIndex].name, this.fontSize, this.doVertical);
-			nameEl.style.backgroundColor = speaker.backgroundColor;
-			nameEl.style.color = speaker.color;
+			const nameEl = LanguageHandler.Display(speakDiv, charDropdownDiv, this.language, this.characters[currentLine.speakerIndex].name, this.fontSize, this.doVertical);
+			if (this.language !== 'Color Lang') {
+				nameEl.style.backgroundColor = speaker.backgroundColor;
+				nameEl.style.color = speaker.color;
+			}
 
-			const lineInput = this.DisplayLineEdit(lineDiv, currentLine);
+			const lineInput = this.DisplayLineEdit(cleanDiv, lineDiv, currentLine);
 			if (this.doVertical) {
 				lineInput.style.height = '100%';
 			} else {
@@ -406,101 +425,11 @@ export class Story extends CFEFile {
 		addButton.onclick = async () => {
 			this.pages[this.currentPageIndex].lines.push(new DialogueLine(0));
 			await this.Save(snv);
-			await this.LoadDialogueLinesEdit(snv, linesDiv, speakDiv);
+			await this.LoadDialogueLinesEdit(snv, linesDiv, speakDiv, cleanDiv);
 		}
 	}
 
-	// private async LoadDialogueLinesEdit(snv: SourceAndVault, linesDiv: HTMLDivElement) {
-	// 	const existingLinesDiv = linesDiv.createDiv('hbox');
-	// 	existingLinesDiv.style.overflowX = 'scroll';
-	// 	const fontSize = '17.5px';
-	// 	for (let i = 0; i < this.pages[this.currentPageIndex].lines.length; i++) {
-	// 		const currentIndex = i;
-	// 		const currentLine = this.pages[this.currentPageIndex].lines[i];
-	// 		const speakerIndex = currentLine.speakerIndex;
-	// 		const currentSpeaker = this.characters[speakerIndex];
-	// 		const lineDiv = existingLinesDiv.createDiv('vbox');
-	// 		const deleteButton = lineDiv.createEl('button', { text: '-' } );
-	// 		deleteButton.className = 'cfe-remove-button';
-	// 		deleteButton.style.writingMode = 'vertical-lr';
-	// 		deleteButton.style.textOrientation = 'upright';
-	// 		deleteButton.onclick = async () => {
-	// 			this.pages[this.currentPageIndex].lines.splice(currentIndex, 1);
-	// 			await this.Save(snv);
-	// 			await this.LoadDialogueLinesEdit(snv, linesDiv);
-	// 		}
-	// 		const indexElement = lineDiv.createEl('p', { text: '' +  currentIndex } );
-	// 		indexElement.style.color = currentSpeaker.color;
-	// 		indexElement.style.fontFamily = 'HwayuReal';
-	// 		indexElement.style.writingMode = 'vertical-lr';
-	// 		indexElement.style.textOrientation = 'upright';
-	// 		const charDropdownDiv = lineDiv.createDiv();
-	// 		charDropdownDiv.style.position = 'relative';
-	// 		const charDropdown = charDropdownDiv.createEl('button');
-	// 		charDropdown.style.height = 'fit-content';
-	// 		charDropdown.onclick = () => {
-	// 			const selectDiv = charDropdownDiv.createDiv('hbox');
-	// 			selectDiv.style.position = 'absolute';
-	// 			selectDiv.style.top = '0%';
-	// 			selectDiv.style.left = '0%';
-	// 			for (let i = 0; i < this.characters.length; i++) {
-	// 				const currentCharIndex = i;
-	// 				const currentChar = this.characters[currentCharIndex];
-	// 				const currentOption = selectDiv.createEl('button', { text: currentChar.name, value: '' + i } );
-	// 				currentOption.style.color = currentChar.color;
-	// 				currentOption.style.fontFamily = 'HwayuReal';
-	// 				currentOption.style.backgroundColor = currentChar.backgroundColor;
-	// 				currentOption.style.writingMode = 'vertical-lr';
-	// 				currentOption.style.textOrientation = 'upright';
-	// 				currentOption.style.height = 'fit-content';
-	// 				currentOption.style.zIndex = '2';
-	// 				currentOption.onclick = async () => {
-	// 					this.pages[this.currentPageIndex].lines[currentIndex].speakerIndex = currentCharIndex;
-	// 					const newSpeakerColor = this.characters[currentCharIndex].color;
-	// 					const newBackgroundColor = this.characters[currentCharIndex].backgroundColor;
-	// 					charDropdown.style.color = newSpeakerColor;
-	// 					charDropdown.style.backgroundColor = newBackgroundColor;
-	// 					charDropdown.textContent = this.characters[currentCharIndex].name;
-	// 					lineInput.style.color = newSpeakerColor;
-	// 					lineInput.style.backgroundColor = newBackgroundColor;
-	// 					indexElement.style.color = newSpeakerColor;
-	// 					await this.Save(snv);
-	// 					selectDiv.remove();
-	// 				}
-	// 			}
-	// 		}
-	// 		charDropdown.textContent = this.characters[currentLine.speakerIndex].name;
-	// 		charDropdown.style.color = currentSpeaker.color;
-	// 		charDropdown.style.backgroundColor = currentSpeaker.backgroundColor;
-	// 		charDropdown.style.fontFamily = 'HwayuReal';
-	// 		charDropdown.style.writingMode = 'vertical-lr';
-	// 		charDropdown.style.textOrientation = 'upright';
-	// 		const lineInput = lineDiv.createEl('textarea');
-	// 		lineInput.spellcheck = false;
-	// 		lineInput.style.overflowX = 'scroll';
-	// 		lineInput.style.writingMode = 'vertical-lr';
-	// 		lineInput.style.textOrientation = 'upright';
-	// 		lineInput.defaultValue = currentLine.content;
-	// 		lineInput.style.color = currentSpeaker.color;
-	// 		lineInput.style.backgroundColor = currentSpeaker.backgroundColor;
-	// 		lineInput.style.fontFamily = 'HwayuReal';
-	// 		lineInput.style.fontSize = fontSize;
-	// 		lineInput.style.height = '100%';
-	// 		lineInput.onchange = async () => {
-	// 			this.pages[this.currentPageIndex].lines[currentIndex].content = lineInput.value;
-	// 			await this.Save(snv);
-	// 		}
-	// 	}
-	// 	const addButton = existingLinesDiv.createEl('button', { text: '+' } );
-	// 	addButton.style.height = '100%';
-	// 	addButton.onclick = async () => {
-	// 		this.pages[this.currentPageIndex].lines.push(new DialogueLine(0));
-	// 		await this.Save(snv);
-	// 		await this.LoadDialogueLinesEdit(snv, linesDiv);
-	// 	}
-	// }
-
-	private async LoadDialogueLinesDisplayOnly(linesDiv: HTMLDivElement, speakDiv: HTMLDivElement) {
+	private async LoadDialogueLinesDisplayOnly(linesDiv: HTMLDivElement, speakDiv: HTMLDivElement, cleanDiv: HTMLDivElement) {
 		linesDiv.empty();
 
 		const existingLinesDiv = linesDiv.createDiv();
@@ -515,16 +444,29 @@ export class Story extends CFEFile {
 			const currentLine = this.pages[this.currentPageIndex].lines[i];
 			const speaker = this.characters[currentLine.speakerIndex];
 			
+			const playButton = existingLinesDiv.createEl('button', { text: '▷' } );
 			const nameDiv = existingLinesDiv.createDiv('');
 			const lineDiv = existingLinesDiv.createDiv('');
 
-			const nameEl = LanguageHandler.Display(nameDiv, this.language, speaker.name, this.fontSize, this.doVertical);
-			nameEl.style.backgroundColor = speaker.backgroundColor;
-			nameEl.style.color = speaker.color;
+			const nameEl = LanguageHandler.Display(cleanDiv, nameDiv, this.language, speaker.name, this.fontSize, this.doVertical);
+			if (this.language !== 'Color Lang') {
+				nameEl.style.backgroundColor = speaker.backgroundColor;
+				nameEl.style.color = speaker.color;
+			}
 
-			const lineEl = LanguageHandler.Display(lineDiv, this.language, currentLine.content, this.fontSize, this.doVertical);
-			lineEl.style.backgroundColor = speaker.backgroundColor;
-			lineEl.style.color = speaker.color;
+			const lineEl = LanguageHandler.Display(cleanDiv, lineDiv, this.language, currentLine.content, this.fontSize, this.doVertical);
+			if (this.language !== 'Color Lang') {
+				lineEl.style.backgroundColor = speaker.backgroundColor;
+				lineEl.style.color = speaker.color;
+			}
+
+			playButton.onclick = () => {
+				try {
+					LanguageHandler.SpeakOrAnimate(cleanDiv, speakDiv, this.language, currentLine.content, 150, this.doVertical);
+				} catch (e) {
+					e.console.error();
+				}
+			}
 		}
 	}
 

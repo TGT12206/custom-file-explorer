@@ -66,19 +66,19 @@ export class CFEFileHandler {
 		switch(plainObject.fileType) {
 			case 'Folder':
 			default:
-				return await Object.assign(new Folder(), plainObject);
+				return Object.assign(new Folder(), plainObject);
 			case 'Single Media File':
-				return await Object.assign(new SingleMediaFile(), plainObject);
+				return Object.assign(new SingleMediaFile(), plainObject);
 			case 'Variant Media File':
-				return await Object.assign(new VariantMediaFile(), plainObject);
+				return Object.assign(new VariantMediaFile(), plainObject);
 			case 'Playlist':
-				return await Object.assign(new Playlist(), plainObject);
+				return Object.assign(new Playlist(), plainObject);
 			case 'Story':
-				return await Object.assign(new Story(), plainObject);
+				return Object.assign(new Story(), plainObject);
 			case 'Source Folder Shortcut':
-				return await Object.assign(new SourceFolderShortcut(), plainObject);
+				return Object.assign(new SourceFolderShortcut(), plainObject);
 			case 'Conlang Dictionary':
-				return await Object.assign(new ConlangDictionary(), plainObject);
+				return Object.assign(new ConlangDictionary(), plainObject);
 		}
 	}
 }

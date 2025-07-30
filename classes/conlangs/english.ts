@@ -1,17 +1,17 @@
 import { ConlangElement, ConlangMultiLineEditor, ConlangOneLineEditor, Language } from "./language";
 
 export class English extends Language {
-	static CreateOneLineEditor(div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): EnglishOneLineEditor {
+	static CreateOneLineEditor(cleanDiv: HTMLDivElement, div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): EnglishOneLineEditor {
 		const textElement = new EnglishOneLineEditor(div, value, fontSize, isVertical);
 		return textElement;
 	}
 
-	static CreateMultiLineEditor(div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): EnglishMultiLineEditor {
+	static CreateMultiLineEditor(cleanDiv: HTMLDivElement, div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = true): EnglishMultiLineEditor {
 		const textElement = new EnglishMultiLineEditor(div, value, fontSize, isVertical);
 		return textElement;
 	}
 
-	static Display(div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = false): EnglishElement {
+	static Display(cleanDiv: HTMLDivElement, div: HTMLDivElement, value = '', fontSize = 17.5, isVertical = false): EnglishElement {
 		const textElement = new EnglishElement(div, value, fontSize, isVertical);
 		return textElement;
 	}
