@@ -225,5 +225,4 @@ export class ConlangDictionary extends CFEFile {
 
 		this.words.splice(i, 0, changedWord);
 	}
-
 }

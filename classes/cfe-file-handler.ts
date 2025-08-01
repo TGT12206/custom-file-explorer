@@ -7,6 +7,7 @@ import { VariantMediaFile } from "./variant-media-file";
 import { SourceFolderShortcut } from "./source-folder-shortcut";
 import { ConlangDictionary } from "./conlang-dictionary";
 import { Story } from "./story";
+import { StorageOrganizer } from "./storage-organizer";
 
 export class CFEFileHandler {
 
@@ -20,7 +21,8 @@ export class CFEFileHandler {
 		'Playlist',
 		'Story',
 		'Source Folder Shortcut',
-		'Conlang Dictionary'
+		'Conlang Dictionary',
+		'Storage Organizer'
 	]
 
 	static async CreateNew(snv: SourceAndVault, fileType: string, parentFolderID: number, name: string): Promise<CFEFile> {
@@ -48,6 +50,9 @@ export class CFEFileHandler {
 			case 'Conlang Dictionary':
 				newFile = await ConlangDictionary.CreateNewFileForLayer(snv, fileType, parentFolderID, name);
 				break;
+			case 'Storage Organizer':
+				newFile = await StorageOrganizer.CreateNewFileForLayer(snv, fileType, parentFolderID, name);
+				break;
 		}
 		await newFile.Save(snv);
 		return newFile;
@@ -66,19 +71,21 @@ export class CFEFileHandler {
 		switch(plainObject.fileType) {
 			case 'Folder':
 			default:
-				return Object.assign(new Folder(), plainObject);
+				return Object.assign(new Folder(), plainObject).LoadAllInnerObjects();
 			case 'Single Media File':
-				return Object.assign(new SingleMediaFile(), plainObject);
+				return Object.assign(new SingleMediaFile(), plainObject).LoadAllInnerObjects();
 			case 'Variant Media File':
-				return Object.assign(new VariantMediaFile(), plainObject);
+				return Object.assign(new VariantMediaFile(), plainObject).LoadAllInnerObjects();
 			case 'Playlist':
-				return Object.assign(new Playlist(), plainObject);
+				return Object.assign(new Playlist(), plainObject).LoadAllInnerObjects();
 			case 'Story':
-				return Object.assign(new Story(), plainObject);
+				return Object.assign(new Story(), plainObject).LoadAllInnerObjects();
 			case 'Source Folder Shortcut':
-				return Object.assign(new SourceFolderShortcut(), plainObject);
+				return Object.assign(new SourceFolderShortcut(), plainObject).LoadAllInnerObjects();
 			case 'Conlang Dictionary':
-				return Object.assign(new ConlangDictionary(), plainObject);
+				return Object.assign(new ConlangDictionary(), plainObject).LoadAllInnerObjects();
+			case 'Storage Organizer':
+				return Object.assign(new StorageOrganizer(), plainObject).LoadAllInnerObjects();
 		}
 	}
 }

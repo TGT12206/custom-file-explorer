@@ -166,4 +166,8 @@ export class CFEFile {
 		}
 		await vault.modify(tFile, jsonData);
 	}
+
+	LoadAllInnerObjects(): CFEFile {
+		return this;
+	}
 }
